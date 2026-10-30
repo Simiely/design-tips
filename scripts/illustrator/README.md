@@ -30,16 +30,17 @@ python build_layered_svg.py
 
 | 启动器 | 通道 | 弹窗 ① File not found | 弹窗 ② 安全警告 | 能确认执行成功 | 需管理员 |
 |---|---|---|---|---|---|
-| `run-ai-job.ps1` | AI 无参数启动 + Startup Scripts 派发 | **不弹** | 设过偏好后不弹 | 靠日志 | **是**（一次性安装） |
+| `run-ai-job.ps1` | AI 无参数启动 + Startup Scripts 派发 | **不弹** | 设过偏好后不弹 | 靠日志 | **是**（一次性安装） |（**实测本版本不触发，见下**） |
 | `run-ai-headless.vbs` | COM `DoJavaScriptFile` | **不弹** | 设过偏好后不弹 | **可以** | 否 |
-| `run-ai-headless.ps1` | `Illustrator.exe -r` | 会弹（噪音，脚本照跑） | 设过偏好后不弹 | 只能靠日志 | 否 |
+| `run-ai-headless.ps1` | `Illustrator.exe -r`（**先把脚本暂存到 AI 所在盘**） | **不弹**（实测同盘无阻塞） | 设过偏好后不弹 | 只能靠日志 | 否 |
 
-- `run-ai-headless.ps1`：清旧实例 → 等进程消失 → 启动 → 轮询日志到 `done` → 退出码语义化。
+- `run-ai-headless.ps1`：清旧实例 → 等进程消失 → **把脚本复制到 `%SystemDrive%\ai\jobs\`（AI 所在盘）** → 以该路径 `-r` 启动 → 轮询日志到 `done` → 退出码语义化。
+  **为什么要暂存到 C 盘**：实测跨盘（D:）路径会弹**模态** "File not found" 并阻塞主线程，不点掉弹窗脚本就一直不开始；脚本与 AI 同盘则直接跑通、无弹窗。
   **超时默认不杀 AI**（杀进程才会真的腰斩脚本），需强制清理加 `-KillOnTimeout`。
 - `run-ai-headless.vbs`：`cscript //nologo run-ai-headless.vbs <jsx> <log> <timeoutSec>`，
   内部 sleep 10s 等 AI 启动完（社区实测必需），再 `DoJavaScriptFile`，最后轮询日志。
-- `run-ai-job.ps1`：把任务 .jsx 排进 `%USERPROFILE%\Documents\Adobe\Scripts\_ai_job.jsx`
-  （受信任目录），**不带参数**启动 AI → Startup Scripts 里的 `startup-dispatcher.jsx` 自动拾取执行。
+- `run-ai-job.ps1` + `startup-dispatcher.jsx`：**本机实测 AI 2026 build 30 不执行 Startup Scripts**（派发器未被触发、派发日志为空）→ 本版本**不可用**，仅留作其他版本/环境的备选。
+  机制：把任务 .jsx 排进 `%USERPROFILE%\Documents\Adobe\Scripts\_ai_job.jsx`（受信任目录），**不带参数**启动 AI → Startup Scripts 里的派发器自动拾取执行。
   一次性安装：`install-startup-dispatcher.ps1`（写 `C:\Program Files\...\Startup Scripts\`，需管理员）。
   派发器用 `_ai_job.done` 标记**幂等去重**（社区实测启动脚本可能执行两次）。
 - `install-ai-startup-dispatcher.cmd`：**一键安装包**（与 `startup-dispatcher.jsx` 放同一目录后双击）。
