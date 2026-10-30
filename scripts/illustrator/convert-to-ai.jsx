@@ -5,8 +5,14 @@
 //       "File not found"（路径丢盘符）——多数情况脚本仍会执行，判据看日志是否出现 done；
 //       若进程在、日志不生成，说明旧实例占位导致脚本没跑，必须结束旧实例重启。
 // 配套文档：docs/illustrator/svg还原分层AI.md（含「常见故障」章节）
+//
+// 外部调用规范（见 Adobe Illustrator Scripting 参考「外部调用与参数传递」）：
+// - 外部启动时 $.fileName 为空 → 本脚本所有路径一律用绝对路径，不从 $.fileName 推导。
+// - 位置参数不会转发（arguments[0] 是 [object BridgeTalk] 或空）→ 本脚本不接参数，改用顶部配置区。
+// - 顶层 try/catch + 写日志到绝对路径：既确认"脚本真的跑了"，也能捕获错误。
 
 #target illustrator
+#targetengine "session"
 // ====== 配置 ======
 var SRC   = "D:/path/to/xxx.layered.svg";   // build_layered_svg.py 的输出
 var DST   = "D:/path/to/xxx.ai";            // 输出 .ai

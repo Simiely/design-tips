@@ -2,7 +2,10 @@
 // 用法：改 DST/LOG 后 "Illustrator.exe -r verify-layers.jsx"
 // 用于人工核对：图层配对是否正确、元素是否泄漏/丢失、bounds 是否符合预期。
 
+// 外部启动时 $.fileName 为空 → 路径一律绝对；位置参数不转发 → 改用顶部配置区。
+
 #target illustrator
+#targetengine "session"
 // ====== 配置 ======
 var DST = "D:/path/to/xxx.ai";
 var LOG = "D:/path/to/_verify.txt";

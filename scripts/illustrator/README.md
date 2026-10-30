@@ -43,8 +43,24 @@ powershell -ExecutionPolicy Bypass -File run-ai-headless.ps1 `
 - 打开生成的 .ai，dump 每个图层的名称、可见性与每个 pageItem 的类型/bounds（UTF-8 日志），
   用于人工核对配对与坐标。
 
+## 三种启动方式怎么选
+
+| 方式 | 命令 | 是否弹 "File not found" | 能否确认执行成功 | 能否等完成 | 适用 |
+|---|---|---|---|---|---|
+| **A. `-r` 命令行**（本仓库默认） | `Illustrator.exe -r x.jsx` | **会弹，是噪音**（实测三路径均如此，脚本照跑；官方社区同题一致） | 只能靠日志 | 不能 | 一次性批处理，配 runner 轮询日志 |
+| **B. COM `DoJavaScriptFile`** | VBS：`appRef.DoJavaScriptFile path, Array()` | 不弹（不经命令行传路径） | **可以**（接口返回） | 可以（需先 sleep ~10s 等 AI 启动） | 需要传参 / 需要等完成的场景 |
+| **C. Startup Scripts 目录** | 放进 AI 安装目录 `Startup Scripts` | 不弹 | 靠日志 | 不需要等 | 每次启动 AI 自动跑的小脚本 |
+
+> 第三方实测文档明确：`exe -r` 方式「无法获知脚本是否执行成功，无法等待脚本执行完成」，
+> 所以走 A 时**判据只能是日志**（文件是否生成、是否出现 `done`）。
+
 ## 已知坑速记
 
 - `doc.groupItems` 含嵌套组且顺序≠文档顺序 → 按组名配对，勿用索引。
-- `-r` 旧实例未退出时报一次 "File not found" 但脚本仍执行 → 先确认无 Illustrator 进程再启动。
+- `-r` 启动会弹一次 `File not found`：**这是噪音，脚本照常执行**（实测 + 官方社区一致）。
+  **别因此关 Illustrator 窗口**——杀进程才会真的中断脚本。判据只看日志有没有 `done`。
 - AI 导出 PNG 带出血 → 像素比对前先对齐裁剪。
+- Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析 → `.ps1` 一律纯 ASCII。
+- 读 UTF-8 日志要 `Get-Content -Encoding UTF8`，否则终端显示乱码（文件本身正常）。
+- 外部启动时 `$.fileName` 为空、位置参数不转发 → 脚本用绝对路径 + 顶部配置区，不依赖 arguments。
+- COM 路线要先 sleep ~10 秒等 Illustrator 启动完，否则脚本可能不执行（社区实测）。

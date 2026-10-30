@@ -61,31 +61,69 @@
 
 ## 常见故障：启动时弹 "File not found"
 
-无头启动 Illustrator 脚本时最常见的一次性故障，**先看现象再决定动作**：
+**结论（实测 + 官方社区交叉验证）：这个弹窗是已知噪音，脚本照常执行。**
+
+启动 `Illustrator.exe -r xxx.jsx` 后可能弹一次 `File not found: /xxx.jsx`（路径显示还丢了盘符）。
+- **本机实测**：三种传参方式（正斜杠长路径 / 反斜杠长路径 / 反斜杠短路径）**都弹窗，但三次脚本都完整执行**
+  （日志正常生成、末尾 `done`、产物落盘）。
+- **官方社区同题**（2023）：用 `Illustrator.exe /run x.jsx` 启动弹同样的对话框，**点 OK 后脚本正常运行**，
+  社区结论是"脚本能找到并执行，这个弹窗可以无视"。
+- **推断（未直接验证）**：AI 把 `-r` 传入的 `.jsx` 路径**当作待打开的文档**去处理，`.jsx` 不是可打开的
+  图形格式 → 报"文件不存在"，而脚本派发本身是成功的（故路径显示还会丢盘符）。
 
 | 现象 | 含义 | 正确动作 |
 |---|---|---|
-| 弹一次 `File not found: /xxx.jsx`（路径丢了盘符） | 旧实例未完全退出，`-r` 交接失败 | **不用重跑**——脚本通常仍会执行；看日志是否生成、是否出现 `done` |
-| 进程在、CPU 几乎不动、日志文件不生成 | 旧实例占位，`-r` 根本没被接收，脚本没跑 | 必须结束旧实例后重启（不是等） |
+| 弹 `File not found`，但日志继续生成 | **正常噪音**，脚本在跑 | **别关 Illustrator 窗口**（点 OK 无害，但别杀进程），等日志出现 `done` |
+| 弹 `File not found`，日志始终不生成 | 脚本路径确实找不到（文件不存在 / 路径写错 / `-Log` 与脚本内 `LOG` 不一致） | 核对文件是否存在、两个路径是否一致 |
+| 日志有内容但一直没有 `done` | 脚本还在跑（打开大 SVG、渲染导出） | 加长 `-TimeoutSec`；**不要杀进程** |
 | 日志出现 `ERROR:` | 脚本内部异常 | 按日志内容修脚本 |
 
-- **根因**：Illustrator 是单实例应用，`-r` 由启动进程交接给实例。旧实例还没退干净时，
-  交接会失败（弹一次错）或落到旧实例（脚本不执行）。
-- **正确姿势**：结束旧实例 → **等进程真正消失** → 再启动 → **轮询日志**判断完成，不要靠肉眼等窗口。
+- **最容易造成误判的坑：手动关窗口 / 杀进程**。实测中脚本被腰斩（日志永远到不了 `done`），
+  原因不是弹窗，而是"以为卡死了就把 AI 关掉"。**弹窗可以无视，窗口不能关。**
+- **`-r` 路线的固有限制**（第三方实测文档明确写出）：用 `exe -r` 跑脚本**无法获知脚本是否执行成功、
+  无法等待执行完成** → 因此**判据只能是日志**：文件是否生成、是否出现 `done`。
+- **正确姿势**：结束旧实例 → **等进程真正消失** → 启动 → **轮询日志**，全程不干预 Illustrator。
   用 `scripts/illustrator/run-ai-headless.ps1` 一条命令搞定（清场 + 启动 + 轮询 + 退出码）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/illustrator/run-ai-headless.ps1 `
-    -Jsx "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 600
+    -Jsx "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 900
 ```
 
-- **判据是日志不是弹窗**：日志文件是否生成、是否出现 `done`，才是"脚本到底跑没跑"的可靠信号。
+### 需要"确认执行成功 / 传参 / 等完成"时：改用 COM 路线
+
+社区验证过的正规做法是 **COM + `DoJavaScriptFile`**（不是命令行传路径，因此不触发上面那个弹窗）：
+
+```vbs
+' run-jsx.vbs —— 注意：Illustrator 是单实例，先等它启动完再执行
+Set appRef = CreateObject("Illustrator.Application")
+WScript.Sleep 10000                      ' 等 AI 起来，否则脚本可能不执行（社区实测必需）
+appRef.DoJavaScriptFile "D:\path\to\script.jsx", Array()
+WScript.Echo "dispatched"
+```
+
+- **启动前必须 sleep ~10 秒**等 Illustrator 完成启动，否则脚本不会执行（社区原话）。
+- 传参注意：外部调用时 **`arguments[0]` 是 `[object BridgeTalk]`（或空），位置参数不会转发**——
+  要传参就用 sidecar 文件（已知绝对路径）或环境变量，不要依赖 `arguments`。
+- **`$.fileName` 在外部启动时为空** → 脚本里**一律用绝对路径**，不要从 `$.fileName` 推导资源位置。
+- 另有一个轻量方案：把 `.jsx` 放进 Illustrator 安装目录下的 **Startup Scripts** 文件夹，
+  每次启动 AI 自动执行（适合常驻小脚本，不适合一次性批处理）。
+
+### 读日志 / 编码
+
 - **读日志要指定编码**：日志是 UTF-8，Windows PowerShell 5.1 默认按 ANSI 读会把中文显示成乱码
   （文件本身正常）——用 `Get-Content -Encoding UTF8` 或直接 `cat`。
-- **.ps1 脚本保持纯 ASCII**：Windows PowerShell 5.1 读无 BOM 的 UTF-8 脚本会按 ANSI 解析，
+- **.ps1 / .jsx 保持纯 ASCII 或带 BOM**：Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析，
   非 ASCII 字符串可能直接造成语法错误（本次实测报"字符串缺少终止符"）。
-- 脚本里仍要保留 `app.userInteractionLevel = DONTDISPLAYALERTS` 抑制大部分弹窗；
-  但个别原生对话框（授权、文件被占用）拦不住，遇到时看日志里的最后一行定位。
+- 脚本里保留 `app.userInteractionLevel = DONTDISPLAYALERTS` 抑制大部分弹窗；
+  个别原生对话框（授权、文件被占用）拦不住，遇到时看日志最后一行定位。
+
+### 参考来源
+
+- Adobe 社区：<https://community.adobe.com/questions-652/ignore-this-file-not-found-error-dialog-in-illustrator-804027>
+- Adobe 社区：<https://community.adobe.com/questions-652/run-existing-script-from-command-line-or-any-other-automated-way-795723>
+- Adobe Illustrator Scripting 参考（外部调用与参数传递）：<https://skillhub.cn/skills/adobe-illustrator-scripting>
+- 第三方实测文档（`-r` 与接口方式的能力差异）：<https://www.getquicker.net/KC/Help/Doc/adobesoftscontrol>
 
 ## 坑
 
@@ -105,9 +143,9 @@ powershell -ExecutionPolicy Bypass -File scripts/illustrator/run-ai-headless.ps1
    用渲染裁剪 + 像素比对确认它对应 SVG 里哪个元素，别按名字猜。
 7. **`doc.groupItems` 包含嵌套组且顺序 ≠ 文档顺序**——用索引配对会把"底部导航栏"塞进
    "照片图片"层。必须按组名配对，且只遍历 `layer.pageItems`。
-8. **`-r` 启动报 "File not found"**：这是**旧实例未退干净**导致的一次性交接故障，
-   多数情况脚本仍会执行，别急着重跑；**判据看日志**（是否生成、是否有 `done`）。
-   脚本不执行（进程在、日志不生成）时必须结束旧实例重启。完整处置见上文「常见故障」章节。
+8. **`-r` 启动弹 "File not found"：是噪音，不是失败**（实测三种路径写法都会弹，但脚本都完整执行）。
+   **千万别因此关窗口/杀进程**——那才会真的把脚本腰斩。判据只看日志：是否生成、是否出现 `done`。
+   完整处置见上文「常见故障」章节。
 9. **AI 导出的 PNG 带出血**（画板外扩几个像素），做像素比对前要先对齐裁剪。
 10. **图片按需选格式**：不透明图转 JPEG（体积约 -60%），带 alpha（渐隐/阴影）保留 PNG。
 

@@ -18,7 +18,8 @@
 3. 解析 path 时 **`H`/`V` 单坐标命令会让朴素数字配对错位**——bbox 必须按命令感知解析器算。
 4. 分层 = 自己重建：按区域分组（bbox 真实位置判定）、层内保持原始文档顺序（堆叠语义）。
 5. AI 无头：`Illustrator.exe -r script.jsx`；图层配对**按组名**、只遍历 `layer.pageItems`
-   （`doc.groupItems` 含嵌套组且顺序≠文档顺序）；`-r` 报一次 File not found 可能仍会执行。
+   （`doc.groupItems` 含嵌套组且顺序≠文档顺序）；**`-r` 启动弹一次 "File not found" 是噪音，
+   脚本照常执行，别因此关窗口**——判据只看日志有没有 `done`。
 6. 完整流程与脚本：`docs/illustrator/svg还原分层AI.md` + `scripts/illustrator/`。
 
 ## Figma 关键坑（结论先行）
