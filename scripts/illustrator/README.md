@@ -42,6 +42,9 @@ python build_layered_svg.py
   （受信任目录），**不带参数**启动 AI → Startup Scripts 里的 `startup-dispatcher.jsx` 自动拾取执行。
   一次性安装：`install-startup-dispatcher.ps1`（写 `C:\Program Files\...\Startup Scripts\`，需管理员）。
   派发器用 `_ai_job.done` 标记**幂等去重**（社区实测启动脚本可能执行两次）。
+- `install-ai-startup-dispatcher.cmd`：**一键安装包**（与 `startup-dispatcher.jsx` 放同一目录后双击）。
+  自动：UAC 自提权 → 写入 Startup Scripts → 建任务目录 → 拉起一次 AI 自检（45 秒，
+  看派发日志有没有 `no job queued - skip`）→ 打印 PASS/FAIL。纯 ASCII，cmd 不乱码。
 
 ## 2c. suppress-external-warning.jsx — 一次性关闭外部脚本安全警告
 

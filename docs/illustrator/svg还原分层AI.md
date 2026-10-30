@@ -110,6 +110,11 @@ powershell -ExecutionPolicy Bypass -File scripts\illustrator\run-ai-job.ps1 `
     -Job "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 540
 ```
 
+**更省事：一键安装包**（自提权 + 自动自检）——把 `install-ai-startup-dispatcher.cmd` 与
+`startup-dispatcher.jsx` 放同一目录，双击即可：会弹 UAC → 写入 Startup Scripts →
+创建任务目录 → **自动拉起一次 AI 做自检**（等 45 秒看派发日志里有没有
+`no job queued - skip`，有就说明 Startup Scripts 真的被触发）→ 打印 PASS/FAIL。
+
 - **任务文件放在 `%USERPROFILE%\Documents\Adobe\Scripts\_ai_job.jsx`**——该目录是 Adobe 受信任目录，
   派发器 `$.evalFile` 执行它不会再触发安全警告；`run-ai-job.ps1` 负责拷贝任务、清去重标记、轮询日志、清理。
 - **必须幂等**：社区实测启动脚本**可能被执行不止一次**（macOS 上出现过两次），因此派发器用 `_ai_job.done`
