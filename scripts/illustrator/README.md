@@ -26,12 +26,22 @@ python build_layered_svg.py
   删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai → 导出 50% PNG24 核验图 → 退出。
 - 日志写文件（脚本内 File 写出），外层轮询日志判断完成，不要傻等进程。
 
-## 2b. run-ai-headless.ps1 / run-ai-headless.vbs — 两种启动器
+## 2b. 三个启动器（按"弹窗数"排）
 
-| 启动器 | 通道 | 特点 |
-|---|---|---|
-| `run-ai-headless.ps1` | `Illustrator.exe -r` | 清旧实例 → 等进程消失 → 启动 → 轮询日志到 `done` → 退出码语义化。**超时默认不杀 AI**（杀进程才会真的腰斩脚本），需强制清理加 `-KillOnTimeout` |
-| `run-ai-headless.vbs` | COM `DoJavaScriptFile` | **不弹 "File not found"**（不经命令行传路径），且能真正等到脚本完成。需先 sleep 10s 等 AI 启动完（社区实测）。用 `cscript //nologo run-ai-headless.vbs <jsx> <log> <timeoutSec>` 启动 |
+| 启动器 | 通道 | 弹窗 ① File not found | 弹窗 ② 安全警告 | 能确认执行成功 | 需管理员 |
+|---|---|---|---|---|---|
+| `run-ai-job.ps1` | AI 无参数启动 + Startup Scripts 派发 | **不弹** | 设过偏好后不弹 | 靠日志 | **是**（一次性安装） |
+| `run-ai-headless.vbs` | COM `DoJavaScriptFile` | **不弹** | 设过偏好后不弹 | **可以** | 否 |
+| `run-ai-headless.ps1` | `Illustrator.exe -r` | 会弹（噪音，脚本照跑） | 设过偏好后不弹 | 只能靠日志 | 否 |
+
+- `run-ai-headless.ps1`：清旧实例 → 等进程消失 → 启动 → 轮询日志到 `done` → 退出码语义化。
+  **超时默认不杀 AI**（杀进程才会真的腰斩脚本），需强制清理加 `-KillOnTimeout`。
+- `run-ai-headless.vbs`：`cscript //nologo run-ai-headless.vbs <jsx> <log> <timeoutSec>`，
+  内部 sleep 10s 等 AI 启动完（社区实测必需），再 `DoJavaScriptFile`，最后轮询日志。
+- `run-ai-job.ps1`：把任务 .jsx 排进 `%USERPROFILE%\Documents\Adobe\Scripts\_ai_job.jsx`
+  （受信任目录），**不带参数**启动 AI → Startup Scripts 里的 `startup-dispatcher.jsx` 自动拾取执行。
+  一次性安装：`install-startup-dispatcher.ps1`（写 `C:\Program Files\...\Startup Scripts\`，需管理员）。
+  派发器用 `_ai_job.done` 标记**幂等去重**（社区实测启动脚本可能执行两次）。
 
 ## 2c. suppress-external-warning.jsx — 一次性关闭外部脚本安全警告
 

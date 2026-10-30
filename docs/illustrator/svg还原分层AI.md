@@ -89,6 +89,40 @@ cscript //nologo scripts\illustrator\run-ai-headless.vbs D:\path\to\convert-to-a
 3. **备选：受信任目录**——把脚本放进 `%USERPROFILE%\Documents\Adobe\Scripts`，该目录下的脚本不触发 ②
    （Adobe JavaScript Tools Guide 说明该目录为受信任位置）。适合不想改全局偏好的场景。
 
+#### 想把 ① 也彻底去掉：Startup Scripts 派发（无需 COM）
+
+官方 Scripting Guide 的 **Startup scripts** 机制：把 `.jsx` 放进名为 `Startup Scripts` 的文件夹，
+**AI 启动时会自动执行**它——命令行根本不传文件参数，所以 ① 不会存在：
+
+| 类型 | Windows 路径 |
+|---|---|
+| 应用级（推荐） | `C:\Program Files\Adobe\Adobe Illustrator <版本>\Startup Scripts\`（文件夹需自建） |
+| 通用级（所有 CC 应用） | `C:\Program Files\Common Files\Adobe\Startup Scripts CC\Illustrator\` |
+
+本仓库提供的三件套：
+
+```powershell
+# ① 一次性安装（需管理员；脚本会自提权）
+powershell -ExecutionPolicy Bypass -File scripts\illustrator\install-startup-dispatcher.ps1
+
+# ② 排队并运行（AI 无参数启动 → 派发器自动拾取任务 → 全程零弹窗）
+powershell -ExecutionPolicy Bypass -File scripts\illustrator\run-ai-job.ps1 `
+    -Job "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 540
+```
+
+- **任务文件放在 `%USERPROFILE%\Documents\Adobe\Scripts\_ai_job.jsx`**——该目录是 Adobe 受信任目录，
+  派发器 `$.evalFile` 执行它不会再触发安全警告；`run-ai-job.ps1` 负责拷贝任务、清去重标记、轮询日志、清理。
+- **必须幂等**：社区实测启动脚本**可能被执行不止一次**（macOS 上出现过两次），因此派发器用 `_ai_job.done`
+  标记去重，任务方排队前先清标记。
+- **注意**：`Startup Scripts` 里的脚本会在**每次启动 AI 时**都运行，所以派发器必须"没任务就什么都不做"。
+
+#### 试过但不管用的做法
+
+- **相对路径 + 指定工作目录**：`Start-Process -WorkingDirectory <脚本目录> -ArgumentList "-r","convert.jsx"`
+  → AI 按**自身**工作目录解析，脚本根本没执行（无日志）。命令行传参必须给**可解析的绝对路径**。
+- **把脚本放进 AI 安装目录的 `Scripts\`（脚本菜单目录）**：那只是让脚本出现在菜单里，
+  不会让 `-r` 启动免掉弹窗。
+
 #### 怎么确认偏好真的生效了
 
 - **脚本内自查**（最直接）：
