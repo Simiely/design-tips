@@ -72,9 +72,22 @@ if (-not $NoKill) {
 # 2) Clear the log: its presence is the most reliable proof that the script ran
 if (-not $KeepLog -and (Test-Path $Log)) { Remove-Item $Log -Force }
 
-# 3) Launch (-r runs the script; the script should call app.quit() when finished)
-Write-Host "[run] launching: $Jsx"
-Start-Process -FilePath $ai -ArgumentList @("-r", $Jsx) | Out-Null
+# 3) Stage the script on the SAME drive as Illustrator.
+#    Measured behaviour (2026-10-30, Illustrator 2026 / build 30, Windows):
+#    launching with a path on another drive (e.g. D:\...) makes Illustrator pop a
+#    MODAL "File not found" box (the path is even shown without its drive letter)
+#    and the script only starts after that box is dismissed -> the run stalls.
+#    With the script on Illustrator's own drive (C:) the script runs straight away
+#    with no dialog. So always stage to %SystemDrive% before launching.
+$stageDir = Join-Path $env:SystemDrive "ai\jobs"
+New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+$staged = Join-Path $stageDir ([IO.Path]::GetFileName($Jsx))
+Copy-Item $Jsx $staged -Force
+Write-Host "[run] staged script -> $staged"
+
+# 4) Launch (-r runs the script; the script should call app.quit() when finished)
+Write-Host "[run] launching Illustrator with -r $staged"
+Start-Process -FilePath $ai -ArgumentList @("-r", $staged) | Out-Null
 
 # 4) Poll the log for done / ERROR
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
