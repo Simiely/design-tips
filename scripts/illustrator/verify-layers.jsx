@@ -6,6 +6,9 @@
 
 #target illustrator
 #targetengine "session"
+
+// 自我加固：关闭"外部脚本运行"安全警告（官方做法）。详见 convert-to-ai.jsx 注释。
+try { app.preferences.setBooleanPreference("ShowExternalJSXWarning", false); } catch (e) {}
 // ====== 配置 ======
 var DST = "D:/path/to/xxx.ai";
 var LOG = "D:/path/to/_verify.txt";

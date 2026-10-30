@@ -26,41 +26,54 @@ python build_layered_svg.py
   删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai → 导出 50% PNG24 核验图 → 退出。
 - 日志写文件（脚本内 File 写出），外层轮询日志判断完成，不要傻等进程。
 
-## 2b. run-ai-headless.ps1 — 稳妥启动（推荐用它，别裸调 -r）
+## 2b. run-ai-headless.ps1 / run-ai-headless.vbs — 两种启动器
 
-解决启动时弹一次 `File not found` / 旧实例占位导致脚本不执行的问题：
-结束旧实例 → 等进程真正消失 → 启动 → 轮询日志到 `done` → 退出码语义化。
+| 启动器 | 通道 | 特点 |
+|---|---|---|
+| `run-ai-headless.ps1` | `Illustrator.exe -r` | 清旧实例 → 等进程消失 → 启动 → 轮询日志到 `done` → 退出码语义化。**超时默认不杀 AI**（杀进程才会真的腰斩脚本），需强制清理加 `-KillOnTimeout` |
+| `run-ai-headless.vbs` | COM `DoJavaScriptFile` | **不弹 "File not found"**（不经命令行传路径），且能真正等到脚本完成。需先 sleep 10s 等 AI 启动完（社区实测）。用 `cscript //nologo run-ai-headless.vbs <jsx> <log> <timeoutSec>` 启动 |
 
-```powershell
-powershell -ExecutionPolicy Bypass -File run-ai-headless.ps1 `
-    -Jsx "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 600
-```
+## 2c. suppress-external-warning.jsx — 一次性关闭外部脚本安全警告
 
-退出码：`0` 成功 / `2` 参数或文件不存在 / `3` 旧实例未退出 / `4` 脚本内部 ERROR / `5` 超时。
+- 官方做法（Adobe 帮助中心 / UserVoice 官方工程师回复）：
+  `app.preferences.setBooleanPreference("ShowExternalJSXWarning", false)`
+- 用法：Illustrator → 文件 > 脚本 > 其他脚本… → 选本文件 → 运行（**只需一次**）。
+- 效果：之后 `-r` / COM 外部调用都不再弹"是否允许运行脚本"。`-r` 路线仍剩一次
+  "File not found" 噪音（点掉无害，别关窗口即可）。
+- 确认是否生效：脚本内 `app.preferences.getBooleanPreference("ShowExternalJSXWarning")`
+  返回 false 即可；也可查偏好文件
+  `%APPDATA%\Adobe\Adobe Illustrator <版本> Settings\<语言>\x64\Adobe Illustrator 首选项`
+  里的 `/ShowExternalJSXWarning 0`（偏好在 AI 正常退出时落盘，勿强杀进程）。
 
 ## 3. verify-layers.jsx — 结构核验
 
 - 打开生成的 .ai，dump 每个图层的名称、可见性与每个 pageItem 的类型/bounds（UTF-8 日志），
   用于人工核对配对与坐标。
 
-## 三种启动方式怎么选
+## 启动方式怎么选（弹窗数按"零点击方案"计）
 
-| 方式 | 命令 | 是否弹 "File not found" | 能否确认执行成功 | 能否等完成 | 适用 |
+| 方式 | 命令 | 弹窗 ① File not found | 弹窗 ② 外部脚本安全警告 | 能否确认执行成功 | 能否等完成 |
 |---|---|---|---|---|---|
-| **A. `-r` 命令行**（本仓库默认） | `Illustrator.exe -r x.jsx` | **会弹，是噪音**（实测三路径均如此，脚本照跑；官方社区同题一致） | 只能靠日志 | 不能 | 一次性批处理，配 runner 轮询日志 |
-| **B. COM `DoJavaScriptFile`** | VBS：`appRef.DoJavaScriptFile path, Array()` | 不弹（不经命令行传路径） | **可以**（接口返回） | 可以（需先 sleep ~10s 等 AI 启动） | 需要传参 / 需要等完成的场景 |
-| **C. Startup Scripts 目录** | 放进 AI 安装目录 `Startup Scripts` | 不弹 | 靠日志 | 不需要等 | 每次启动 AI 自动跑的小脚本 |
+| **A. `-r` 命令行** | `Illustrator.exe -r x.jsx` | **会弹**（噪音，实测三路径均如此，脚本照跑） | 首次弹；设过偏好后不弹 | 只能靠日志 | 不能 |
+| **B. COM `DoJavaScriptFile`** | `cscript //nologo run-ai-headless.vbs x.jsx log 600` | **不弹**（不经命令行传路径） | 设过偏好后不弹 | **可以** | **可以** |
+| **C. Startup Scripts 目录** | 放进 AI 安装目录 `Startup Scripts` | 不弹 | 不弹 | 靠日志 | 不需要等 |
 
 > 第三方实测文档明确：`exe -r` 方式「无法获知脚本是否执行成功，无法等待脚本执行完成」，
 > 所以走 A 时**判据只能是日志**（文件是否生成、是否出现 `done`）。
 
+**零点击三步**（一次性）：
+1. `File > 脚本 > 其他脚本…` 运行一次 `suppress-external-warning.jsx` → 关闭 ②（官方做法：
+   `app.preferences.setBooleanPreference("ShowExternalJSXWarning", false)`）；
+2. 批处理改用 **B（run-ai-headless.vbs）** → ① 也不弹，且能等完成；
+3. 或把脚本放进 `%USERPROFILE%\Documents\Adobe\Scripts`（受信任目录）→ 该目录下不触发 ②。
+
 ## 已知坑速记
 
 - `doc.groupItems` 含嵌套组且顺序≠文档顺序 → 按组名配对，勿用索引。
-- `-r` 启动会弹一次 `File not found`：**这是噪音，脚本照常执行**（实测 + 官方社区一致）。
+- `-r` 启动的 "File not found"：**是噪音，脚本照常执行**（实测 + 官方社区一致）。
   **别因此关 Illustrator 窗口**——杀进程才会真的中断脚本。判据只看日志有没有 `done`。
 - AI 导出 PNG 带出血 → 像素比对前先对齐裁剪。
-- Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析 → `.ps1` 一律纯 ASCII。
+- Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析 → `.ps1` / `.vbs` 一律纯 ASCII。
 - 读 UTF-8 日志要 `Get-Content -Encoding UTF8`，否则终端显示乱码（文件本身正常）。
 - 外部启动时 `$.fileName` 为空、位置参数不转发 → 脚本用绝对路径 + 顶部配置区，不依赖 arguments。
 - COM 路线要先 sleep ~10 秒等 Illustrator 启动完，否则脚本可能不执行（社区实测）。

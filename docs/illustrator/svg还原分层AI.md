@@ -59,70 +59,92 @@
 4. **双基准验证**：无头 Edge 渲染 SVG + AI 自身导出 PNG，PIL 做像素 diff
    （本例平均色差 ≈1/255，与"原图 vs PDF 渲染"的本底噪声同级）。
 
-## 常见故障：启动时弹 "File not found"
+## 启动时的两次弹窗：来源、判定与消除
 
-**结论（实测 + 官方社区交叉验证）：这个弹窗是已知噪音，脚本照常执行。**
+外部启动 Illustrator 脚本时通常弹**两次**确认。两次来源不同、性质不同，处理方式也不同：
 
-启动 `Illustrator.exe -r xxx.jsx` 后可能弹一次 `File not found: /xxx.jsx`（路径显示还丢了盘符）。
-- **本机实测**：三种传参方式（正斜杠长路径 / 反斜杠长路径 / 反斜杠短路径）**都弹窗，但三次脚本都完整执行**
-  （日志正常生成、末尾 `done`、产物落盘）。
-- **官方社区同题**（2023）：用 `Illustrator.exe /run x.jsx` 启动弹同样的对话框，**点 OK 后脚本正常运行**，
-  社区结论是"脚本能找到并执行，这个弹窗可以无视"。
-- **推断（未直接验证）**：AI 把 `-r` 传入的 `.jsx` 路径**当作待打开的文档**去处理，`.jsx` 不是可打开的
-  图形格式 → 报"文件不存在"，而脚本派发本身是成功的（故路径显示还会丢盘符）。
+| # | 弹窗 | 官方定性 | 能否消除 |
+|---|---|---|---|
+| ① | `File not found: /xxx.jsx`（路径显示还丢盘符） | 命令行传 `.jsx` 时 Illustrator 会**把它当文档打开**，`.jsx` 不是可打开的图形格式 → 报"文件不存在"，而脚本派发本身是成功的 | 改用 **COM `DoJavaScriptFile`**（不经命令行传路径）即可不弹 |
+| ② | "是否允许运行该脚本"（外部脚本安全警告） | Illustrator 的**外部脚本安全特性**，用于提示"有外部程序在驱动 Illustrator 执行脚本" | 官方给的消除法：运行 JSX 设 `app.preferences.setBooleanPreference("ShowExternalJSXWarning", false)`；或把脚本放进**受信任目录** `%USERPROFILE%\Documents\Adobe\Scripts` |
+
+**实测与社区结论一致**：`-r` 启动一定会弹 ①（三种路径写法都弹）；点掉 ① 之后脚本照常执行（日志正常生成、末尾 `done`）。
+所以 ① 是**噪音**，② 才是真正需要授权的那一次。
+
+### 零点击方案（推荐：首次 1 次点击，之后 0 点击）
+
+1. **一次性关掉安全警告（官方做法）**
+   Illustrator → 文件 > 脚本 > 其他脚本… → 选 `scripts/illustrator/suppress-external-warning.jsx` → 运行。
+   这一步会写入偏好 `ShowExternalJSXWarning=false`，**之后所有外部调用都不再弹 ②**。
+   （本仓库的 `convert-to-ai.jsx` / `verify-layers.jsx` 开头也会自动设置该偏好，属于自我加固：
+   首次运行仍会弹一次，因为警告发生在脚本执行之前。）
+2. **改用 COM 路线跑批处理**（`scripts/illustrator/run-ai-headless.vbs`）→ 连 ① 也不弹，且**能真正等到脚本完成**：
+
+```bat
+cscript //nologo scripts\illustrator\run-ai-headless.vbs D:\path\to\convert-to-ai.jsx D:\path\to\_ailog.txt 600
+```
+
+   COM 路线要点（社区实测）：`CreateObject("Illustrator.Application")` → **必须先 sleep ~10 秒**等 Illustrator
+   启动完成，否则脚本不执行 → `appRef.DoJavaScriptFile path, Array()` → 轮询日志到 `done`。
+3. **备选：受信任目录**——把脚本放进 `%USERPROFILE%\Documents\Adobe\Scripts`，该目录下的脚本不触发 ②
+   （Adobe JavaScript Tools Guide 说明该目录为受信任位置）。适合不想改全局偏好的场景。
+
+#### 怎么确认偏好真的生效了
+
+- **脚本内自查**（最直接）：
+  ```jsx
+  app.preferences.getBooleanPreference("ShowExternalJSXWarning")   // false = 已关闭
+  ```
+- **看偏好文件**（Windows）：`%APPDATA%\Adobe\Adobe Illustrator <版本号> Settings\<语言>\x64\Adobe Illustrator 首选项`
+  里有一行 `/ShowExternalJSXWarning 0`（0=不弹、1=弹）。
+  注意：偏好在 Illustrator 正常退出时才落盘，所以改完要**让 AI 正常退出**（脚本里 `app.quit()`），
+  强杀进程可能导致不落盘。
+- 关闭后，`-r` 路线只剩 ①（File not found 噪音，可无视）；走 COM 路线则**两次点击都不需要**。
+
+### 判据与处置
 
 | 现象 | 含义 | 正确动作 |
 |---|---|---|
-| 弹 `File not found`，但日志继续生成 | **正常噪音**，脚本在跑 | **别关 Illustrator 窗口**（点 OK 无害，但别杀进程），等日志出现 `done` |
-| 弹 `File not found`，日志始终不生成 | 脚本路径确实找不到（文件不存在 / 路径写错 / `-Log` 与脚本内 `LOG` 不一致） | 核对文件是否存在、两个路径是否一致 |
-| 日志有内容但一直没有 `done` | 脚本还在跑（打开大 SVG、渲染导出） | 加长 `-TimeoutSec`；**不要杀进程** |
+| 弹 ①，但日志继续生成 | **正常噪音**，脚本在跑 | 弹窗可无视（点 OK 无害）；**但不要关 Illustrator 窗口** |
+| 弹 ①，日志始终不生成 | 脚本路径确实找不到（文件不存在 / 路径写错 / `-Log` 与脚本内 `LOG` 不一致） | 核对文件是否存在、两个路径是否一致 |
+| 弹 ② | 首次授权 | 点"允许"；或用上面的 `suppress-external-warning.jsx` 一次性关掉 |
+| 日志有内容但一直没有 `done` | 脚本还在跑（打开大 SVG、渲染导出） | 加长超时；**不要杀进程** |
 | 日志出现 `ERROR:` | 脚本内部异常 | 按日志内容修脚本 |
 
 - **最容易造成误判的坑：手动关窗口 / 杀进程**。实测中脚本被腰斩（日志永远到不了 `done`），
   原因不是弹窗，而是"以为卡死了就把 AI 关掉"。**弹窗可以无视，窗口不能关。**
 - **`-r` 路线的固有限制**（第三方实测文档明确写出）：用 `exe -r` 跑脚本**无法获知脚本是否执行成功、
-  无法等待执行完成** → 因此**判据只能是日志**：文件是否生成、是否出现 `done`。
+  无法等待执行完成** → 判据只能是日志；需要"确认成功/等完成"就走 COM 路线。
 - **正确姿势**：结束旧实例 → **等进程真正消失** → 启动 → **轮询日志**，全程不干预 Illustrator。
-  用 `scripts/illustrator/run-ai-headless.ps1` 一条命令搞定（清场 + 启动 + 轮询 + 退出码）：
+  PowerShell 版启动器：`scripts/illustrator/run-ai-headless.ps1`（清场 + 启动 + 轮询 + 退出码）。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/illustrator/run-ai-headless.ps1 `
     -Jsx "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 900
 ```
 
-### 需要"确认执行成功 / 传参 / 等完成"时：改用 COM 路线
+### 外部调用规范（Adobe Illustrator Scripting 参考「外部调用与参数传递」）
 
-社区验证过的正规做法是 **COM + `DoJavaScriptFile`**（不是命令行传路径，因此不触发上面那个弹窗）：
-
-```vbs
-' run-jsx.vbs —— 注意：Illustrator 是单实例，先等它启动完再执行
-Set appRef = CreateObject("Illustrator.Application")
-WScript.Sleep 10000                      ' 等 AI 起来，否则脚本可能不执行（社区实测必需）
-appRef.DoJavaScriptFile "D:\path\to\script.jsx", Array()
-WScript.Echo "dispatched"
-```
-
-- **启动前必须 sleep ~10 秒**等 Illustrator 完成启动，否则脚本不会执行（社区原话）。
-- 传参注意：外部调用时 **`arguments[0]` 是 `[object BridgeTalk]`（或空），位置参数不会转发**——
-  要传参就用 sidecar 文件（已知绝对路径）或环境变量，不要依赖 `arguments`。
-- **`$.fileName` 在外部启动时为空** → 脚本里**一律用绝对路径**，不要从 `$.fileName` 推导资源位置。
-- 另有一个轻量方案：把 `.jsx` 放进 Illustrator 安装目录下的 **Startup Scripts** 文件夹，
-  每次启动 AI 自动执行（适合常驻小脚本，不适合一次性批处理）。
+- 外部启动时 **`$.fileName` 为空** → 脚本里一律用绝对路径，不要从 `$.fileName` 推导资源位置。
+- **位置参数不会转发**（`arguments[0]` 是 `[object BridgeTalk]` 或空）→ 要传参就用 sidecar 文件
+  （已知绝对路径）或环境变量；本仓库脚本改用**顶部配置区**。
+- `#targetengine "session"` 可让脚本在多次调用之间保留变量。
+- 批处理必须 `app.userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS`。
 
 ### 读日志 / 编码
 
 - **读日志要指定编码**：日志是 UTF-8，Windows PowerShell 5.1 默认按 ANSI 读会把中文显示成乱码
   （文件本身正常）——用 `Get-Content -Encoding UTF8` 或直接 `cat`。
-- **.ps1 / .jsx 保持纯 ASCII 或带 BOM**：Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析，
+- **.ps1 / .vbs 保持纯 ASCII**：Windows PowerShell 5.1 读无 BOM 的 UTF-8 脚本会按 ANSI 解析，
   非 ASCII 字符串可能直接造成语法错误（本次实测报"字符串缺少终止符"）。
-- 脚本里保留 `app.userInteractionLevel = DONTDISPLAYALERTS` 抑制大部分弹窗；
-  个别原生对话框（授权、文件被占用）拦不住，遇到时看日志最后一行定位。
 
 ### 参考来源
 
+- Adobe 帮助中心「Install and run scripts」（抑制警告的官方做法）：<https://helpx.adobe.com/in/illustrator/desktop/automate-visualize-data/automate-actions/install-and-run-scripts.html>
+- Adobe UserVoice（官方工程师回复，指明这是外部脚本安全特性并给出同样解法）：<https://illustrator.uservoice.com/users/6201597489-sonia-vivo>
 - Adobe 社区：<https://community.adobe.com/questions-652/ignore-this-file-not-found-error-dialog-in-illustrator-804027>
-- Adobe 社区：<https://community.adobe.com/questions-652/run-existing-script-from-command-line-or-any-other-automated-way-795723>
-- Adobe Illustrator Scripting 参考（外部调用与参数传递）：<https://skillhub.cn/skills/adobe-illustrator-scripting>
+- Adobe 社区（COM 调用方式与 sleep 10 秒）：<https://community.adobe.com/questions-652/run-existing-script-from-command-line-or-any-other-automated-way-795723>
+- Adobe 社区「Script warning」（受信任目录 `Documents/Adobe/Scripts`）：<https://community.adobe.com/questions-652/script-warning-778797>
 - 第三方实测文档（`-r` 与接口方式的能力差异）：<https://www.getquicker.net/KC/Help/Doc/adobesoftscontrol>
 
 ## 坑

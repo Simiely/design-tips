@@ -13,6 +13,10 @@
 
 #target illustrator
 #targetengine "session"
+
+// 自我加固：关闭"外部脚本运行"安全警告（官方做法：app.preferences.setBooleanPreference("ShowExternalJSXWarning", false)）。
+// 首次运行仍会弹一次（警告在脚本执行前触发），但脚本一旦跑起来就把偏好关掉，之后外部调用不再弹。
+try { app.preferences.setBooleanPreference("ShowExternalJSXWarning", false); } catch (e) {}
 // ====== 配置 ======
 var SRC   = "D:/path/to/xxx.layered.svg";   // build_layered_svg.py 的输出
 var DST   = "D:/path/to/xxx.ai";            // 输出 .ai
