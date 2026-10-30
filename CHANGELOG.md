@@ -2,10 +2,24 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.3.0] - 2026-10-30
+### 改造（Breaking）
+- 仓库更名：figma-navigation-tips → **design-tips**，定位升级为「平面设计软件实战技巧库」。
+- 结构分区：`docs/figma/`（原 4 篇迁入）、`docs/illustrator/`、`docs/common/`（预留）；
+  脚本按 `scripts/<软件>/` 分区。旧链接 GitHub 自动重定向。
+- 新增增长协议（DEVELOPMENT.md）：双入口索引同步、单软件 ≤12 篇平铺阈值、frontmatter 元数据、只收验证内容。
+
+### 新增
+- 新软件线 Illustrator：主题 1「SVG 还原为带分层的 AI」（docs/illustrator/svg还原分层AI.md）——
+  扁平 SVG + 同名 PDF → 可编辑带图层 .ai 的完整流水线（pattern 失真修复 / PDF 位图抽取 /
+  命令感知 path 解析 / 无头脚本转换 / 像素级验证）。
+- 配套脚本 scripts/illustrator/：build_layered_svg.py（分层 SVG 构建器）、
+  convert-to-ai.jsx（无头转换）、verify-layers.jsx（图层结构核验）。
+
 ## [0.2.0] - 2026-08-25
 ### 新增
 - 仓库定位扩展为 「Figma 使用技巧速查」（原仅导航跳转）。
-- 新增主题3：评论排布技巧（docs/评论排布技巧.md）——评论贴太近会自动叠成"簇"，错误位摆放 + 拉开间距可分散，无原生关闭开关。
+- 新增主题3：评论排布技巧（docs/figma/评论排布技巧.md）——评论贴太近会自动叠成"簇"，错误位摆放 + 拉开间距可分散，无原生关闭开关。
 
 ## [0.1.0] - 2026-08-25
 ### 新增
