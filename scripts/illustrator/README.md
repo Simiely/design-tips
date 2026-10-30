@@ -26,6 +26,9 @@ python build_layered_svg.py
   删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai → 导出 50% PNG24 核验图 → 退出。
 - 日志写文件（脚本内 File 写出），外层轮询日志判断完成，不要傻等进程。
 
+> 相关技能：本仓的通用做法已沉淀为 WorkBuddy 技能 **illustrator-artboard-clip**
+> （github.com/Simiely/workbuddy-skills），含溢出扫描 / 画板收边 / 零弹窗启动三脚本与 AI 2026 API 坑位清单。
+
 ## 2b. 三个启动器（按"弹窗数"排）
 
 | 启动器 | 通道 | 弹窗 ① File not found | 弹窗 ② 安全警告 | 能确认执行成功 | 需管理员 |
