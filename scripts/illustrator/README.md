@@ -26,6 +26,18 @@ python build_layered_svg.py
   删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai → 导出 50% PNG24 核验图 → 退出。
 - 日志写文件（脚本内 File 写出），外层轮询日志判断完成，不要傻等进程。
 
+## 2b. run-ai-headless.ps1 — 稳妥启动（推荐用它，别裸调 -r）
+
+解决启动时弹一次 `File not found` / 旧实例占位导致脚本不执行的问题：
+结束旧实例 → 等进程真正消失 → 启动 → 轮询日志到 `done` → 退出码语义化。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File run-ai-headless.ps1 `
+    -Jsx "D:\path\to\convert-to-ai.jsx" -Log "D:\path\to\_ailog.txt" -TimeoutSec 600
+```
+
+退出码：`0` 成功 / `2` 参数或文件不存在 / `3` 旧实例未退出 / `4` 脚本内部 ERROR / `5` 超时。
+
 ## 3. verify-layers.jsx — 结构核验
 
 - 打开生成的 .ai，dump 每个图层的名称、可见性与每个 pageItem 的类型/bounds（UTF-8 日志），

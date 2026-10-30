@@ -1,8 +1,10 @@
 // convert-to-ai.jsx — Illustrator 2026 无头转换：分层 SVG → 带图层 .ai
-// 用法：先改下方配置区，然后 "Illustrator.exe -r convert-to-ai.jsx"
-// 注意：旧实例未完全退出时启动会报一次 "File not found"，脚本通常仍会执行；
-//      保险做法是先确认无 Illustrator 进程再启动。完成后外层轮询 LOG 文件判断结束。
-// 配套文档：docs/illustrator/svg还原分层AI.md
+// 用法：先改下方配置区，然后运行 run-ai-headless.ps1（推荐）
+//       powershell -ExecutionPolicy Bypass -File run-ai-headless.ps1 -Jsx <本文件> -Log <日志路径>
+//       裸调 "Illustrator.exe -r 本文件" 也行，但旧实例未完全退出时会弹一次
+//       "File not found"（路径丢盘符）——多数情况脚本仍会执行，判据看日志是否出现 done；
+//       若进程在、日志不生成，说明旧实例占位导致脚本没跑，必须结束旧实例重启。
+// 配套文档：docs/illustrator/svg还原分层AI.md（含「常见故障」章节）
 
 #target illustrator
 // ====== 配置 ======
