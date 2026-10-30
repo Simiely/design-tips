@@ -2,6 +2,19 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.4.0] - 2026-10-30
+### 新增
+- Illustrator 第 2 篇：docs/illustrator/无头脚本自动化速查.md —— 零弹窗跑通 JSX 的完整方法论：
+  零弹窗三个必要条件（安全警告开关 / **脚本与 AI 同盘** / 不走"打开文件"逻辑）、三条启动通道对比、
+  标准工作流四步、退出码对照、排错速查表、脚本必备要素。
+- scripts/illustrator/template-job.jsx —— 空白任务模板（配置区 + 日志 + try/catch + app.quit）。
+### 修复
+- run-ai-headless.ps1：启动前把任务脚本**暂存到 Illustrator 所在盘**（%SystemDrive%\ai\jobs\）。
+  实测跨盘路径会触发模态 "File not found" 并阻塞主线程（不点掉弹窗脚本永不开始）；
+  同盘后实测零弹窗、16s 跑完真实转换，产物 md5 不变。
+### 已知限制
+- AI 2026 build 30 **不执行 Startup Scripts**（安装成功但派发器未被执行）→ 该通道仅留作其他版本备选。
+
 ## [0.3.0] - 2026-10-30
 ### 改造（Breaking）
 - 仓库更名：figma-navigation-tips → **design-tips**，定位升级为「平面设计软件实战技巧库」。

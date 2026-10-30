@@ -59,6 +59,12 @@ python build_layered_svg.py
   `%APPDATA%\Adobe\Adobe Illustrator <版本> Settings\<语言>\x64\Adobe Illustrator 首选项`
   里的 `/ShowExternalJSXWarning 0`（偏好在 AI 正常退出时落盘，勿强杀进程）。
 
+## 2d. template-job.jsx — 空白任务模板
+
+新写无头任务时直接复制它、改顶部配置区即可。模板已内置四条必备规则：
+`#targetengine "session"`、全绝对路径、顶层 try/catch 写日志、结尾 `app.quit()`。
+完整方法论见 docs/illustrator/无头脚本自动化速查.md。
+
 ## 3. verify-layers.jsx — 结构核验
 
 - 打开生成的 .ai，dump 每个图层的名称、可见性与每个 pageItem 的类型/bounds（UTF-8 日志），

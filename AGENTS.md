@@ -17,7 +17,8 @@
    栅格化成图片（AI 不支持 SVG 滤镜）；渐隐蒙版已烘焙进 SMask alpha。
 3. 解析 path 时 **`H`/`V` 单坐标命令会让朴素数字配对错位**——bbox 必须按命令感知解析器算。
 4. 分层 = 自己重建：按区域分组（bbox 真实位置判定）、层内保持原始文档顺序（堆叠语义）。
-5. AI 无头：`Illustrator.exe -r script.jsx`；图层配对**按组名**、只遍历 `layer.pageItems`
+5. **脚本必须与 AI 同盘**（跨盘 → 模态 "File not found" 阻塞，脚本永不开始）；
+   启动前复制到 `%SystemDrive%\ai\jobs\` 再启动。AI 无头：`Illustrator.exe -r script.jsx`；图层配对**按组名**、只遍历 `layer.pageItems`
    （`doc.groupItems` 含嵌套组且顺序≠文档顺序）。启动时的两次弹窗要分清：
    **"File not found" 是噪音（脚本照跑，别关窗口）**；"是否允许运行脚本"是外部脚本安全警告，
    用 `suppress-external-warning.jsx` 一次性关闭（官方做法）。判据只看日志有没有 `done`。
@@ -34,6 +35,7 @@
 
 ## FAQ 路由
 
+- "无头跑 AI 脚本 / 弹窗 / 脚本不执行 / 怎么等它跑完" → docs/illustrator/无头脚本自动化速查.md
 - "SVG 转 AI 后样子不对 / 没图层 / 图层乱" → docs/illustrator/svg还原分层AI.md（脚本在 scripts/illustrator/）
 - "编辑模式点文字跳某块" → docs/figma/编辑模式文字链接导航.md
 - "编辑时快速定位视图" → docs/figma/编辑模式快速定位.md
