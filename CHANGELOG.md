@@ -2,6 +2,19 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.5.0] - 2026-11-02
+### 新增
+- convert-to-ai.jsx：**画布收边步骤**（`CANVAS_CLIP=true` 默认开）——移完图层后把每层内容收进
+  "画板矩形剪切组"（`GroupItem.clipped`），超出画布的对象（背景出血 2~5px、渐变矩形溢出等
+  Figma 导出常态）被裁回画布内；不裁像素、随时可逆。第 2 份真实设计稿实测：5/5 层
+  clipRect=2560×1440，画板内保真度与位图重编码本底一致。
+- verify-layers.jsx：新增每层裁剪蒙版核验输出（`CLIP` 行，clipRect 应=画板尺寸）。
+### 实测坑（已写入主文档坑⑪⑫ / AGENTS 关键坑6）
+- **SVG 顶层命名组加 `clip-path` → AI 2026 导入后 `GroupItem.name` 变空**，按名配对图层全挂
+  （moved:0，命名层被当空壳删光）→ 收边必须放 JSX 做，SVG 侧只留 id。
+- **无头环境 `executeMenuCommand("Clipping Mask")` 必报 `1112237433 ('BKey')`** →
+  用 `GroupItem.clipped` 代替（组内 ≥2 对象、裁切框置组内最上层）。
+
 ## [0.4.0] - 2026-10-30
 ### 新增
 - Illustrator 第 2 篇：docs/illustrator/无头脚本自动化速查.md —— 零弹窗跑通 JSX 的完整方法论：

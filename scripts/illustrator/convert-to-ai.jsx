@@ -25,6 +25,12 @@ var LOG   = "D:/path/to/_ailog.txt";        // 运行日志（外层轮询它判
 // 图层名按堆叠顺序：数组第一个 = 最底层（背景），最后一个 = 最顶层
 // 必须与分层 SVG 里顶层 <g id="..."> 的 id 一一对应
 var LAYERS = ["背景","顶部状态栏","左侧信息面板","地图区域","底部导航栏"];
+// 画布收边蒙版：true = 移完图层后，把每层内容收进一个"画板矩形剪切组"（GroupItem.clipped），
+// 超出画布的对象（背景出血 2~5px、渐变矩形溢出等 Figma 导出常态）被裁回画布内——不裁像素、可逆。
+// 两个实测坑（2026-11-02，AI 2026 build 30，详见 docs/illustrator/svg还原分层AI.md 坑11/12）：
+//   ① 别在分层 SVG 的顶层命名组上加 clip-path —— AI 导入后组名变空，按名配对全挂；
+//   ② 别用 executeMenuCommand("Clipping Mask") —— 无头环境必报 1112237433 ('BKey')。
+var CANVAS_CLIP = true;
 // =================
 
 var f = new File(LOG);
@@ -65,6 +71,31 @@ try {
     }
   }
   log("moved: " + moved);
+
+  // 画布收边：每层内容快照后收进一个裁剪组，组内最顶层放画板尺寸矩形作为裁剪路径。
+  // 硬规则（坑12 同源）：剪切组内 ≥2 个对象；裁切框必须组内最上层；坐标 y 向上，
+  // pathItems.rectangle(top, left, width, height) 的高度按 top − bottom 算。
+  if (CANVAS_CLIP){
+    var ab = doc.artboards[0].artboardRect; // [left, top, right, bottom]
+    log("artboard rect: " + ab.join(","));
+    var clipLayers = [];
+    for (var ci=0; ci<doc.layers.length; ci++) clipLayers.push(doc.layers[ci]);
+    for (var cj=0; cj<clipLayers.length; cj++){
+      var cly = clipLayers[cj];
+      if (!layerByName[cly.name]) continue;          // 只处理上面建的命名层
+      if (cly.pageItems.length === 0) continue;
+      var items = [];                                 // 先快照再移动（move 会改变集合）
+      for (var k=0; k<cly.pageItems.length; k++) items.push(cly.pageItems[k]);
+      var cgroup = cly.groupItems.add();
+      cgroup.name = "canvas-clip";
+      for (var k2=items.length-1; k2>=0; k2--) items[k2].move(cgroup, ElementPlacement.PLACEATEND);
+      var rect = cgroup.pathItems.rectangle(ab[1], ab[0], ab[2]-ab[0], ab[1]-ab[3]);
+      rect.name = "artboard-clip";
+      rect.clipping = true;
+      cgroup.clipped = true;
+      log("clipped layer: '" + cly.name + "' (group items=" + cgroup.pageItems.length + ")");
+    }
+  }
 
   // 删空壳图层
   var ls = doc.layers;

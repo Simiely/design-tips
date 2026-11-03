@@ -1,7 +1,7 @@
 ---
 软件: Illustrator 2026
 关联: Figma 导出的 SVG / PDF
-验证日期: 2026-10-30
+验证日期: 2026-10-30（全流程）/ 2026-11-02（画布收边，第 2 份真实设计稿回归）
 状态: 已验证（真实设计稿全流程跑通 + 像素级比对）
 ---
 
@@ -24,6 +24,10 @@
 3. **"带分层"要自己重建**：先算每个元素的真实 bbox（**必须按 path 命令解析**，见坑①），
    按语义区域分组（背景/顶栏/面板/地图/底栏），层内保持原始文档顺序，再由脚本把组提升为真图层。
 4. **AI 无头转换**：`Illustrator.exe -r script.jsx`；图层配对**按组名**、只遍历 `layer.pageItems`。
+5. **超出画布的对象用"画板矩形剪切组"收边**（Figma 导出背景出血 2~5px 是常态）：在 JSX 里对每层
+   建一个画板尺寸的裁剪组（`GroupItem.clipped`），不裁像素、随时可逆。**不要**放 SVG `clip-path`
+   （会让 AI 导入后组名变空，坑⑪），**不要**用 `executeMenuCommand("Clipping Mask")`
+   （无头环境必报 BKey 错，坑⑫）。
 
 ## 职责划分：SVG 管矢量，PDF 管位图
 
@@ -54,8 +58,10 @@
    pattern 矩形→内嵌 `<image preserveAspectRatio="none">`（保留旋转/裁剪）、滤镜阴影→PDF 栅格图、
    被裁剪的位图→按 PDF 矩阵从源图裁切。生成带命名分组的分层 SVG。
 2. `convert-to-ai.jsx` —— Illustrator 无头打开分层 SVG → 按组名建真图层并移入（背景在最底）→
-   删空壳图层 → 存 .ai → 导出 50% PNG24 核验图。
-3. `verify-layers.jsx` —— dump 图层结构与 bounds，核对配对。
+   **画布收边**（`CANVAS_CLIP=true` 默认开：每层内容收进"画板矩形剪切组"，超出画布的对象被裁回
+   画布内，不裁像素、可逆）→ 删空壳图层 → 存 .ai → 导出 50% PNG24 核验图。
+3. `verify-layers.jsx` —— dump 图层结构与 bounds + 每层裁剪蒙版核验（`CLIP` 行的 clipRect 应=
+   画板尺寸），核对配对与收边。
 4. **双基准验证**：无头 Edge 渲染 SVG + AI 自身导出 PNG，PIL 做像素 diff
    （本例平均色差 ≈1/255，与"原图 vs PDF 渲染"的本底噪声同级）。
 
@@ -220,6 +226,15 @@ powershell -ExecutionPolicy Bypass -File scripts/illustrator/run-ai-headless.ps1
    完整处置见上文「常见故障」章节。
 9. **AI 导出的 PNG 带出血**（画板外扩几个像素），做像素比对前要先对齐裁剪。
 10. **图片按需选格式**：不透明图转 JPEG（体积约 -60%），带 alpha（渐隐/阴影）保留 PNG。
+11. **别在分层 SVG 的顶层命名组上加 `clip-path`**（2026-11-02 实测）：AI 导入 SVG 时，
+    带 `clip-path` 的 `<g id="...">` 组名会变空（`GroupItem.name = ''`），按名配对全部失配
+    ——实测 `moved: 0`，5 个命名层被当空壳删光，产物只剩单层；去掉 `clip-path`（只留 `id`）
+    后同样内容导入，组名全部正常。**画布收边必须在 JSX 里做**（`CANVAS_CLIP`），SVG 侧顶层组只留 `id`。
+    （原稿自带的画布裁剪 `clip0` 也会被构建器丢弃，别指望它兜底。）
+12. **无头环境别用 `executeMenuCommand("Clipping Mask")`**（2026-11-02 实测）：每层都抛
+    `an Illustrator error occurred: 1112237433 ('BKey')`。用 `GroupItem.clipped` 代替：
+    组内 ≥2 个对象、画板矩形 `pathItems.rectangle(top, left, w, h)` 置于组内**最上层**、
+    `rect.clipping = true` + `group.clipped = true`。坐标 y 向上，高度按 `top − bottom` 算。
 
 ## 官方参考
 

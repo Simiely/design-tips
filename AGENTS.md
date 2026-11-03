@@ -22,7 +22,12 @@
    （`doc.groupItems` 含嵌套组且顺序≠文档顺序）。启动时的两次弹窗要分清：
    **"File not found" 是噪音（脚本照跑，别关窗口）**；"是否允许运行脚本"是外部脚本安全警告，
    用 `suppress-external-warning.jsx` 一次性关闭（官方做法）。判据只看日志有没有 `done`。
-6. 完整流程与脚本：`docs/illustrator/svg还原分层AI.md` + `scripts/illustrator/`。
+6. **超出画布的对象用"画板矩形剪切组"收边**（convert-to-ai.jsx 的 `CANVAS_CLIP`，默认开）：
+   每层内容收进裁剪组、画板矩形置组内最上层，`GroupItem.clipped = true`；不裁像素、可逆。
+   两个实测坑（2026-11-02）：**SVG 顶层命名组加 `clip-path` 会让 AI 导入后组名变空**
+   （按名配对全挂，moved:0）→ SVG 只留 id、收边放 JSX；
+   **`executeMenuCommand("Clipping Mask")` 无头必报 BKey 错（1112237433）** → 只用 `GroupItem.clipped`。
+7. 完整流程与脚本：`docs/illustrator/svg还原分层AI.md` + `scripts/illustrator/`。
 
 ## Figma 关键坑（结论先行）
 
@@ -37,6 +42,7 @@
 
 - "无头跑 AI 脚本 / 弹窗 / 脚本不执行 / 怎么等它跑完" → docs/illustrator/无头脚本自动化速查.md
 - "SVG 转 AI 后样子不对 / 没图层 / 图层乱" → docs/illustrator/svg还原分层AI.md（脚本在 scripts/illustrator/）
+- "SVG 转 AI 后对象超出画布 / 要按画布收边加蒙版" → docs/illustrator/svg还原分层AI.md（结论先行动5 + 坑⑪⑫；convert-to-ai.jsx `CANVAS_CLIP`）
 - "编辑模式点文字跳某块" → docs/figma/编辑模式文字链接导航.md
 - "编辑时快速定位视图" → docs/figma/编辑模式快速定位.md
 - "评论挤在一起 / 合并" → docs/figma/评论排布技巧.md

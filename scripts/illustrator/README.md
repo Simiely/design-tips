@@ -23,7 +23,13 @@ python build_layered_svg.py
 
 - `Illustrator.exe -r convert-to-ai.jsx`（改顶部 SRC/DST/图层名配置）。
 - 打开分层 SVG → 按**组名**创建真图层并移入（`layer.pageItems` 遍历，天然排除嵌套组）→
-  删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai → 导出 50% PNG24 核验图 → 退出。
+  **画布收边**（`CANVAS_CLIP=true` 默认开）→ 删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai
+  → 导出 50% PNG24 核验图 → 退出。
+- **画布收边**：移完图层后把每层内容收进一个"画板矩形剪切组"（`GroupItem.clipped`）——
+  超出画布的对象（背景出血 2~5px、渐变矩形溢出等 Figma 导出常态）被裁回画布内，
+  **不裁像素、随时可逆**。两个实测坑（2026-11-02）：
+  **别把 clip-path 写进分层 SVG**（AI 导入后组名变空，按名配对全挂，见主文档坑⑪）；
+  **别用 `executeMenuCommand("Clipping Mask")`**（无头必报 `1112237433 ('BKey')`，见坑⑫）。
 - 日志写文件（脚本内 File 写出），外层轮询日志判断完成，不要傻等进程。
 
 > 相关技能：本仓的通用做法已沉淀为 WorkBuddy 技能 **illustrator-artboard-clip**
@@ -72,6 +78,8 @@ python build_layered_svg.py
 
 - 打开生成的 .ai，dump 每个图层的名称、可见性与每个 pageItem 的类型/bounds（UTF-8 日志），
   用于人工核对配对与坐标。
+- 末尾输出**画布收边核验**（`CLIP layer ... clipRect=[...] w=... h=...`）：每个命名层应有一个
+  clipped 组，clipRect 应等于画板尺寸；没有则说明 `CANVAS_CLIP` 没生效或被跳过。
 
 ## 启动方式怎么选（弹窗数按"零点击方案"计）
 
@@ -95,6 +103,8 @@ python build_layered_svg.py
 - `doc.groupItems` 含嵌套组且顺序≠文档顺序 → 按组名配对，勿用索引。
 - `-r` 启动的 "File not found"：**是噪音，脚本照常执行**（实测 + 官方社区一致）。
   **别因此关 Illustrator 窗口**——杀进程才会真的中断脚本。判据只看日志有没有 `done`。
+- SVG 顶层命名组带 `clip-path` → AI 导入后组名变空，按名配对全挂 → 收边放 JSX 做（`CANVAS_CLIP`），SVG 只留 id。
+- 无头 `executeMenuCommand("Clipping Mask")` 必报 `1112237433 ('BKey')` → 用 `GroupItem.clipped`（裁切框置组内最上层）。
 - AI 导出 PNG 带出血 → 像素比对前先对齐裁剪。
 - Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析 → `.ps1` / `.vbs` 一律纯 ASCII。
 - 读 UTF-8 日志要 `Get-Content -Encoding UTF8`，否则终端显示乱码（文件本身正常）。
