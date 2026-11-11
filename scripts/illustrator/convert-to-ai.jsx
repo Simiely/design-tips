@@ -10,6 +10,10 @@
 // - 外部启动时 $.fileName 为空 → 本脚本所有路径一律用绝对路径，不从 $.fileName 推导。
 // - 位置参数不会转发（arguments[0] 是 [object BridgeTalk] 或空）→ 本脚本不接参数，改用顶部配置区。
 // - 顶层 try/catch + 写日志到绝对路径：既确认"脚本真的跑了"，也能捕获错误。
+//
+// ⚠️ 一次启动只转一个文件：同一个 AI 会话里 open 第二个 SVG 会报
+//    "an Illustrator error occurred: 271"（2026-11-11 实测，第 2 份稿必挂）。
+//    多份稿就分多次启动（一个 jsx 一份配置），不要在脚本里循环批处理。
 
 #target illustrator
 #targetengine "session"
@@ -71,6 +75,34 @@ try {
     }
   }
   log("moved: " + moved);
+
+  // 还原 mix-blend-mode：build_layered.py 会把带混合模式的对象包进 id="blend-<mode>" 的组
+  // （Figma 的发光/灯光常用 soft-light、color-dodge）。AI 导入 SVG 不认这个 CSS 属性，
+  // 必须在导入后按组名补设 blendingMode，否则光效会变成死白亮斑（2026-11-11 实测）。
+  var BMAP = {
+    "soft-light": BlendModes.SOFTLIGHT, "hard-light": BlendModes.HARDLIGHT,
+    "color-dodge": BlendModes.COLORDODGE, "color-burn": BlendModes.COLORBURN,
+    "multiply": BlendModes.MULTIPLY, "screen": BlendModes.SCREEN,
+    "overlay": BlendModes.OVERLAY, "darken": BlendModes.DARKEN,
+    "lighten": BlendModes.LIGHTEN, "difference": BlendModes.DIFFERENCE,
+    "exclusion": BlendModes.EXCLUSION
+  };
+  var blendCount = 0;
+  function walkBlend(items){
+    for (var i=0; i<items.length; i++){
+      var it = items[i];
+      if (it.typename === "GroupItem"){
+        if (it.name && it.name.indexOf("blend-") === 0){
+          var k = it.name.substring(6);
+          if (BMAP[k] !== undefined){ it.blendingMode = BMAP[k]; blendCount++; log("blend '" + k + "' -> " + BMAP[k]); }
+          else log("WARN unknown blend group: " + it.name);
+        }
+        walkBlend(it.pageItems);
+      }
+    }
+  }
+  for (var bl=0; bl<doc.layers.length; bl++) walkBlend(doc.layers[bl].pageItems);
+  log("blend groups applied: " + blendCount);
 
   // 画布收边：每层内容快照后收进一个裁剪组，组内最顶层放画板尺寸矩形作为裁剪路径。
   // 硬规则（坑12 同源）：剪切组内 ≥2 个对象；裁切框必须组内最上层；坐标 y 向上，

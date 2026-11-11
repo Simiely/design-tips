@@ -2,6 +2,31 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.6.0] - 2026-11-11
+### 新增
+- `scripts/illustrator/build_layered.py` —— **通用版分层 SVG 构建器**（首选）。相对 `build_layered_svg.py`
+  的手写映射，改为自动识别：pattern 填充→`<image>`（按 `use` 变换精确落位）、
+  filter 模糊组→光效位图、filter 投影组→阴影位图+矢量主体、`<mask>` 实心矩形→等效 `clipPath`、
+  `mix-blend-mode`→`id="blend-<mode>"` 命名组。换稿只改顶部 CONFIG（路径 / 图层名 / 区域阈值）。
+- `scripts/illustrator/render_glow.py` —— 把单个 `<filter>` 组用无头 Edge 渲染成**透明底 2x PNG**
+  （`--default-background-color=00000000` + 按 filter 的 x/y/w/h 裁切），比 PDF 栅格图更贴近 SVG 外观。
+- `convert-to-ai.jsx`：新增 **blendingMode 还原**（按 `blend-*` 组名设 `BlendModes.SOFTLIGHT` /
+  `COLORDODGE` 等）——Figma 的发光层常用 `mix-blend-mode`，AI 导入 SVG 不认这个 CSS 属性。
+- `verify-layers.jsx`：dump 每项 `blendingMode`，便于核验光效混合模式是否落到对象上。
+
+### 实测坑（已写入主文档坑⑬~⑰ / AGENTS 关键坑8-9）
+- **`mix-blend-mode` 不处理 → 灯光变成死白亮斑**：单独渲染该层位图时混合模式仍生效，
+  对着透明底做 soft-light 会把颜色拉满（实测同一点 38→170）。渲染位图时必须剥掉，导入后再补设。
+- **投影类 `*_d` filter 的 PDF 位图只含阴影**：整组替换会让图标本体消失 → 阴影在下、矢量主体叠上。
+- **模糊光效用 PDF 那张会偏白**：一片光晕被洗淡（最大色差 130+）→ 改用本机浏览器渲染同组后降到 36。
+- **`<mask>` 是实心矩形时不能直接删**：会露出本来被裁掉的一段发光路线 → 转等效 `clipPath`。
+- **一次 AI 会话只能开一个 SVG**：`doc.close()` 后再 `app.open` 第二个必报 `error 271` → 一稿一启动。
+- 带中文图层名的 `.jsx` 必须存成**带 UTF-8 BOM**，否则 ExtendScript 按 ANSI 读、组名对不上。
+
+### 实测数据（第 3 份真实设计稿：2560×1440 车载 HMI，两状态各一份）
+- 分层 SVG vs 原 SVG（无头 Edge 渲染）：平均色差 0.40/255，色差>8 像素 0.03%~0.06%。
+- AI 导出 PNG vs 原 SVG：平均色差 0.61/255，色差>8 像素约 0.67%（集中在文字/图标抗锯齿边缘）。
+
 ## [0.5.0] - 2026-11-02
 ### 新增
 - convert-to-ai.jsx：**画布收边步骤**（`CANVAS_CLIP=true` 默认开）——移完图层后把每层内容收进

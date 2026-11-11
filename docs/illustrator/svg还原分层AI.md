@@ -1,8 +1,8 @@
 ---
 软件: Illustrator 2026
 关联: Figma 导出的 SVG / PDF
-验证日期: 2026-10-30（全流程）/ 2026-11-02（画布收边，第 2 份真实设计稿回归）
-状态: 已验证（真实设计稿全流程跑通 + 像素级比对）
+验证日期: 2026-10-30（全流程）/ 2026-11-02（画布收边，第 2 份真实设计稿回归）/ 2026-11-11（混合模式 + 光效栅格化，同稿两状态回归）
+状态: 已验证（3 份真实设计稿全流程跑通 + AI 导出像素级比对）
 ---
 
 # SVG 还原为带分层的 AI 文件
@@ -28,18 +28,25 @@
    建一个画板尺寸的裁剪组（`GroupItem.clipped`），不裁像素、随时可逆。**不要**放 SVG `clip-path`
    （会让 AI 导入后组名变空，坑⑪），**不要**用 `executeMenuCommand("Clipping Mask")`
    （无头环境必报 BKey 错，坑⑫）。
+6. **光效要"按类型分开处理"**：模糊光晕用**本机无头浏览器**渲染该 filter 组（PDF 那张偏白，
+   会把光晕洗淡）；投影类 filter 的 PDF 位图**只含阴影**，矢量主体要另外叠回去；
+   `mix-blend-mode`（发光常用 soft-light / color-dodge）SVG 里包一层命名组、导入后补设
+   `blendingMode`——不补的话灯光会变成一颗死白亮斑（坑⑬⑭⑮）。
+7. **一次启动只转一份稿**：同一会话里 open 第二个 SVG 必报 `error 271`（坑⑰）。
 
-## 职责划分：SVG 管矢量，PDF 管位图
+## 职责划分：矢量走 SVG，位图按类型分流
 
 两个文件各司其职，**谁的内容谁负责**，不交叉：
 
 | 内容 | 负责 | 处理方式 |
 |---|---|---|
 | 全部矢量元素（图标、转曲文字、公路线、色块） | **SVG** | 原样保留，文档顺序 = 堆叠顺序 |
-| 背景大图、照片位 | **PDF** | 抽内嵌图（SMask alpha 已含渐隐），把 pattern 填充替换为 `<image preserveAspectRatio="none">`，保留旋转/裁剪 |
-| 模糊阴影（feGaussianBlur） | **PDF** | Figma 导出 PDF 时已栅格化成图片，按 PDF 变换矩阵摆放（AI 不支持 SVG 滤镜） |
-| 渐隐蒙版（mask） | **PDF** | 已烘焙进图片 alpha；AI 不认 SVG mask |
+| 背景大图、照片位 | **PDF / SVG 内嵌图** | 抽内嵌图（SMask alpha 已含渐隐），把 pattern 填充替换为 `<image preserveAspectRatio="none">`，保留旋转/裁剪 |
+| 模糊光效（feGaussianBlur） | **SVG 组 → 本机浏览器渲染** | 单独渲染该 filter 组为透明底 2x PNG（渲染时**剥掉** mix-blend-mode）；PDF 那张会偏白（坑⑮） |
+| 投影（feOffset 类 filter） | **PDF + 矢量** | PDF 位图只含阴影 → 阴影位图在下、原矢量主体叠在上面，否则图标本体丢失（坑⑭） |
+| 渐隐蒙版（mask）、矩形 alpha 遮罩 | **PDF / clipPath** | 渐隐已烘焙进图片 alpha；**实心矩形遮罩要转等效 `clip-path`**，别直接删（坑⑯） |
 | 渐变（linearGradient）、裁剪路径（clipPath） | **SVG** | AI 能正确导入，保留在 defs |
+| 混合模式（mix-blend-mode） | **JSX** | SVG 里包 `id="blend-<mode>"` 的组，导入后按组名设 `blendingMode`（坑⑬） |
 | 分组依据 | **截图标记** | 按区域框归属（见下方示意图） |
 
 ## 分组依据（示意图）
@@ -54,15 +61,17 @@
 
 完整流水线见 `scripts/illustrator/`（README 有逐脚本说明）：
 
-1. `build_layered_svg.py` —— 解析原 SVG（命令感知 path bbox + transform 矩阵链）→ 按区域规则分组重建：
-   pattern 矩形→内嵌 `<image preserveAspectRatio="none">`（保留旋转/裁剪）、滤镜阴影→PDF 栅格图、
-   被裁剪的位图→按 PDF 矩阵从源图裁切。生成带命名分组的分层 SVG。
-2. `convert-to-ai.jsx` —— Illustrator 无头打开分层 SVG → 按组名建真图层并移入（背景在最底）→
-   **画布收边**（`CANVAS_CLIP=true` 默认开：每层内容收进"画板矩形剪切组"，超出画布的对象被裁回
-   画布内，不裁像素、可逆）→ 删空壳图层 → 存 .ai → 导出 50% PNG24 核验图。
-3. `verify-layers.jsx` —— dump 图层结构与 bounds + 每层裁剪蒙版核验（`CLIP` 行的 clipRect 应=
-   画板尺寸），核对配对与收边。
-4. **双基准验证**：无头 Edge 渲染 SVG + AI 自身导出 PNG，PIL 做像素 diff
+1. `build_layered.py` —— **通用版，首选**：自动识别 pattern / filter / mask / 混合模式，不需要逐元素写映射，
+   换稿只改顶部 CONFIG（源目录、区域阈值、图层名）。产出带命名分组的分层 SVG。
+   `build_layered_svg.py` 是首份稿的手写参考实现（逐元素 BITMAP/DROP 映射），保留用于对照排查。
+2. `render_glow.py` —— 把单个 `<filter>` 组用无头 Edge 渲染成透明底 2x PNG（`build_layered.py` 自动调用）。
+   比 PDF 栅格图更贴近 SVG 自身外观；渲染时会剥掉 `mix-blend-mode`，避免对着透明底做混合而偏亮。
+3. `convert-to-ai.jsx` —— Illustrator 无头打开分层 SVG → 按组名建真图层并移入（背景在最底）→
+   **还原 blendingMode**（`blend-*` 命名组）→ **画布收边**（`CANVAS_CLIP=true` 默认开）→
+   删空壳图层 → 存 .ai → 导出 100%/50% PNG24 核验图。
+4. `verify-layers.jsx` —— dump 图层结构与 bounds + `blend=` 混合模式 + 每层裁剪蒙版核验
+   （`CLIP` 行的 clipRect 应 = 画板尺寸）。
+5. **双基准验证**：无头 Edge 渲染 SVG + AI 自身导出 PNG，PIL 做像素 diff
    （本例平均色差 ≈1/255，与"原图 vs PDF 渲染"的本底噪声同级）。
 
 ## 启动时的两次弹窗：来源、判定与消除
@@ -235,6 +244,25 @@ powershell -ExecutionPolicy Bypass -File scripts/illustrator/run-ai-headless.ps1
     `an Illustrator error occurred: 1112237433 ('BKey')`。用 `GroupItem.clipped` 代替：
     组内 ≥2 个对象、画板矩形 `pathItems.rectangle(top, left, w, h)` 置于组内**最上层**、
     `rect.clipping = true` + `group.clipped = true`。坐标 y 向上，高度按 `top − bottom` 算。
+13. **`mix-blend-mode` 不处理，灯光会变成死白亮斑**（2026-11-11 实测）：Figma 把发光层的混合模式写在
+    `style="mix-blend-mode:soft-light|color-dodge"` 里，AI 导入 SVG 不认这个 CSS 属性。
+    更坑的是**单独渲染这一层位图时它仍生效**——对着透明底做 soft-light，颜色被拉满，
+    车头灯从"暖橙微光"变成一颗纯白亮斑（实测该点色差 38→170）。
+    正解：SVG 里包一层 `<g id="blend-<mode>">`，渲染位图时**剥掉** mix-blend-mode，
+    再由 `convert-to-ai.jsx` 按组名设 `blendingMode`（`BlendModes.SOFTLIGHT` / `COLORDODGE` 等）。
+14. **投影类 filter 的 PDF 位图"只含阴影"**（2026-11-11 实测）：带 `feOffset`+`feComposite` 的
+    `filter*_d` 组，PDF 里那张图只有阴影、没有主体；照模糊类那样整组替换，绿色充电标记会只剩一团光晕。
+    正解：阴影位图放下面 + 原矢量组（摘掉 filter 属性）叠在上面。
+15. **模糊光效用 PDF 栅格图会偏白**（2026-11-11 实测）：PDF 里 blur 的结果比浏览器渲染更亮更散，
+    一片光晕被"洗淡"，最大色差到 130+。改用**本机无头浏览器**渲染同一个 filter 组
+    （`--default-background-color=00000000` 拿透明底，2 倍图，按 filter 的 x/y/w/h 裁切）后降到 36。
+16. **`<mask>` 是实心矩形遮罩时，删掉会露出本来被裁掉的元素**（2026-11-11 实测）：Figma 给"图层模糊"
+    生成的 mask 往往就是一个 100% 实心矩形（`mask-type:alpha`），只起矩形裁剪作用。
+    直接删 `mask` 属性，原本在区域外的一段发光路线整条露出来（地图像素级可见）。
+    正解：把 mask 里的 rect 转成一个 `clipPath` 再挂回该组。
+17. **同一个 AI 会话里连续 `app.open` 第二个 SVG 会报 `271`**（2026-11-11 实测）：第一份跑完
+    `doc.close()` 后再开第二份，直接抛 `an Illustrator error occurred: 271 ('')`，与文件本身无关。
+    正解：**一次启动只转一个文件**——多份稿拆成多个 jsx / 多次启动，别在脚本里循环批处理。
 
 ## 官方参考
 

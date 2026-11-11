@@ -30,7 +30,8 @@ try {
     var b; try { b = it.visibleBounds; } catch(e){ b = "?"; }
     var nm = ""; try { nm = it.name; } catch(e){}
     var cp = ""; try { if (it.typename === "GroupItem") cp = " clipped=" + it.clipped; } catch(e){}
-    log(ind + it.typename + " name='" + nm + "'" + cp + " bounds=" + b);
+    var bm = ""; try { bm = " blend=" + it.blendingMode; } catch(e){}   // 混合模式核验（soft-light 等）
+    log(ind + it.typename + " name='" + nm + "'" + cp + bm + " bounds=" + b);
     if (it.typename === "GroupItem") {
       for (var i=it.pageItems.length-1; i>=0; i--) dumpItem(it.pageItems[i], ind + "  ");
     }

@@ -18,13 +18,15 @@
 
 | # | 主题 | 一句话 |
 |---|---|---|
-| 1 | SVG 还原为带分层的 AI | 扁平 SVG + 同名 PDF → 可编辑带图层 .ai：pattern 失真修复 / PDF 位图抽取（阴影·渐隐·裁剪头像）/ 命令感知路径解析 / 无头脚本转换 + **画布收边蒙版** + 像素级验证 |
+| 1 | SVG 还原为带分层的 AI | 扁平 SVG + 同名 PDF → 可编辑带图层 .ai：pattern 失真修复 / 位图抽取（阴影·渐隐·裁剪头像）/ 命令感知路径解析 / **光效按类型处理（模糊用浏览器渲染、投影叠矢量、混合模式还原）** / 无头脚本转换 + **画布收边蒙版** + 像素级验证 |
 | 2 | 无头脚本自动化速查 | 一条命令让 Illustrator 跑 JSX 脚本、**零弹窗零点击**：同盘暂存规则 / 安全警告开关 / 三条启动通道 / 排错速查 / 任务脚本模板 |
 
 ## 脚本 scripts/<软件>/
 
-- `scripts/illustrator/`：分层 SVG 构建器（命令感知 path 解析 + 按区域分组 + pattern→image 替换）+
-  AI 无头转换 JSX + 图层结构核验 JSX。逐脚本说明见 [scripts/illustrator/README.md](scripts/illustrator/README.md)。
+- `scripts/illustrator/`：分层 SVG 构建器（通用版 `build_layered.py` 自动识别 pattern/filter/mask/混合模式 +
+  命令感知 path 解析 + 按区域分组；`build_layered_svg.py` 为首份稿的手写参考实现）+ 光效透明底渲染
+  `render_glow.py` + AI 无头转换 JSX + 图层结构核验 JSX。逐脚本说明见
+  [scripts/illustrator/README.md](scripts/illustrator/README.md)。
 
 ## 维护规则（写新条目前必读）
 

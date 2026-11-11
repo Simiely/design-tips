@@ -2,9 +2,37 @@
 
 配套文档：[docs/illustrator/svg还原分层AI.md](../../docs/illustrator/svg还原分层AI.md)（场景/结论/坑）。
 
-三个脚本按顺序使用，换一份设计稿只需改各脚本顶部的配置区。
+按顺序使用，换一份设计稿只需改各脚本顶部的配置区（通用版连映射都不用写）。
 
-## 1. build_layered_svg.py — 生成"分层 SVG"
+## 0. build_layered.py — 通用版构建器（首选）
+
+- 与 `build_layered_svg.py` 的区别：**不需要逐元素写映射**，换稿只改顶部 CONFIG：
+  `BASE` / `WORK`（源目录、产物目录）、`ORDER`（图层名 = 堆叠顺序）、
+  `RULE`（区域判定阈值：背景宽高、顶栏 y、底栏 y、左栏 x）。
+- 自动处理四类"AI 导不进的东西"：
+  | 源里的写法 | 处理 |
+  |---|---|
+  | `<rect fill="url(#pattern*)">` | 换成 `<image>`，位置按 pattern 的 `use` 变换反算（旋转/裁剪原样保留） |
+  | `<g filter="…_f">` 模糊组 | 调 `render_glow.py` 用本机无头 Edge 渲染成透明底 2x PNG |
+  | `<g filter="…_d">` 投影组 | PDF 的阴影位图在下 + 原矢量组（摘掉 filter）在上 |
+  | `<g style="mix-blend-mode:…">` | 包一层 `id="blend-<mode>"` 的组，交给 JSX 还原 |
+  | `<g mask="…">` 实心矩形遮罩 | 转成等效 `clipPath`（直接删会露出本来被裁掉的元素） |
+- 依赖：`pillow`、`pymupdf`、本机 Edge/Chrome。
+- 层内保持原始文档顺序（堆叠语义），区域判定用"变换后真实 bbox 中心点"。
+
+```bash
+python build_layered.py 006 007     # 参数 = 不带扩展名的文件名（同名 .svg/.pdf 需在同一目录）
+```
+
+## 0b. render_glow.py — 单 filter 组的透明底渲染
+
+- `render_filter(svg, filter_id, region, out_png, scale=2)`：只把 `<filter>` 组的宿主元素拎出来，
+  连同 defs 里的渐变/滤镜/裁剪重建一个最小 SVG，用 `--default-background-color=00000000`
+  截透明底图，再按 filter 的 `x/y/w/h` 裁切。
+- **必须剥掉 `mix-blend-mode`**：否则会对着透明底做混合，光晕被拉亮（见主文档坑⑬）。
+- 为什么不用 PDF 那张：PDF 的栅格化结果偏白，一片光晕会被洗淡（坑⑮）。
+
+## 1. build_layered_svg.py — 首份稿的手写参考实现
 
 - 解析原 SVG：**命令感知的 path bbox 计算器**（处理 M/L/H/V/C/S/Q/T/A/Z 及相对命令，
   注意 `H`/`V` 单坐标命令会让朴素数字配对错位）+ transform 矩阵链（translate/rotate/matrix）。
@@ -23,8 +51,11 @@ python build_layered_svg.py
 
 - `Illustrator.exe -r convert-to-ai.jsx`（改顶部 SRC/DST/图层名配置）。
 - 打开分层 SVG → 按**组名**创建真图层并移入（`layer.pageItems` 遍历，天然排除嵌套组）→
+  **还原 `blendingMode`**（`blend-*` 命名组，soft-light / color-dodge 等）→
   **画布收边**（`CANVAS_CLIP=true` 默认开）→ 删空壳"图层 1" → `saveAs(IllustratorSaveOptions)` 存 .ai
-  → 导出 50% PNG24 核验图 → 退出。
+  → 导出 PNG24 核验图 → 退出。
+- ⚠️ **一次启动只转一个文件**：同一会话里 open 第二个 SVG 必报 `271`（主文档坑⑰）——
+  多份稿就复制成多个 jsx（改 SRC/DST）分多次启动。
 - **画布收边**：移完图层后把每层内容收进一个"画板矩形剪切组"（`GroupItem.clipped`）——
   超出画布的对象（背景出血 2~5px、渐变矩形溢出等 Figma 导出常态）被裁回画布内，
   **不裁像素、随时可逆**。两个实测坑（2026-11-02）：
@@ -105,8 +136,14 @@ python build_layered_svg.py
   **别因此关 Illustrator 窗口**——杀进程才会真的中断脚本。判据只看日志有没有 `done`。
 - SVG 顶层命名组带 `clip-path` → AI 导入后组名变空，按名配对全挂 → 收边放 JSX 做（`CANVAS_CLIP`），SVG 只留 id。
 - 无头 `executeMenuCommand("Clipping Mask")` 必报 `1112237433 ('BKey')` → 用 `GroupItem.clipped`（裁切框置组内最上层）。
+- **`mix-blend-mode` 不还原 → 灯光变死白亮斑**；渲染位图时要剥掉它，导入后按 `blend-*` 组名设 `blendingMode`。
+- **投影类 filter（`*_d`）的 PDF 位图只含阴影** → 阴影在下、矢量主体叠上，否则图标本体消失。
+- **模糊光效别用 PDF 那张**（偏白）→ 本机无头浏览器渲染同组，2x 透明底。
+- **`<mask>` 是实心矩形时不能直接删** → 转等效 `clipPath`，否则露出本来被裁掉的元素。
+- **一次 AI 会话只能开一个 SVG**（第二个报 `271`）→ 一稿一启动。
 - AI 导出 PNG 带出血 → 像素比对前先对齐裁剪。
-- Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析 → `.ps1` / `.vbs` 一律纯 ASCII。
+- Windows PowerShell 5.1 读无 BOM 的 UTF-8 `.ps1` 会按 ANSI 解析 → `.ps1` / `.vbs` 一律纯 ASCII；
+  同理**带中文图层名的 `.jsx` 必须存成带 UTF-8 BOM**，否则 ExtendScript 按 ANSI 读，组名对不上。
 - 读 UTF-8 日志要 `Get-Content -Encoding UTF8`，否则终端显示乱码（文件本身正常）。
 - 外部启动时 `$.fileName` 为空、位置参数不转发 → 脚本用绝对路径 + 顶部配置区，不依赖 arguments。
 - COM 路线要先 sleep ~10 秒等 Illustrator 启动完，否则脚本可能不执行（社区实测）。

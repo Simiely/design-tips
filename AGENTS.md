@@ -27,7 +27,15 @@
    两个实测坑（2026-11-02）：**SVG 顶层命名组加 `clip-path` 会让 AI 导入后组名变空**
    （按名配对全挂，moved:0）→ SVG 只留 id、收边放 JSX；
    **`executeMenuCommand("Clipping Mask")` 无头必报 BKey 错（1112237433）** → 只用 `GroupItem.clipped`。
-7. 完整流程与脚本：`docs/illustrator/svg还原分层AI.md` + `scripts/illustrator/`。
+7. 完整流程与脚本：`docs/illustrator/svg还原分层AI.md` + `scripts/illustrator/`
+   （通用版 `build_layered.py` + `render_glow.py`；`build_layered_svg.py` 是首份稿的手写参考实现）。
+8. **光效按类型分开处理**（2026-11-11 实测）：
+   - 模糊光晕 → 用**本机无头浏览器**渲染该 filter 组（透明底 2x）；PDF 那张偏白，会把光晕洗淡；
+   - 投影类 `*_d`（feOffset）→ PDF 位图**只含阴影**，矢量主体要叠回去，否则图标本体消失；
+   - `mix-blend-mode`（soft-light / color-dodge，发光常用）→ SVG 里包 `id="blend-<mode>"` 组，
+     导入后按组名设 `blendingMode`；渲染位图时要先剥掉，否则对着透明底混合、灯光变死白亮斑；
+   - `<mask>` 是实心矩形时 → 转等效 `clipPath`，直接删会露出本来被裁掉的元素。
+9. **一次 AI 会话只能开一个 SVG**：`doc.close()` 后再 `app.open` 第二个必报 `271` → 一稿一启动。
 
 ## Figma 关键坑（结论先行）
 
@@ -43,6 +51,7 @@
 - "无头跑 AI 脚本 / 弹窗 / 脚本不执行 / 怎么等它跑完" → docs/illustrator/无头脚本自动化速查.md
 - "SVG 转 AI 后样子不对 / 没图层 / 图层乱" → docs/illustrator/svg还原分层AI.md（脚本在 scripts/illustrator/）
 - "SVG 转 AI 后对象超出画布 / 要按画布收边加蒙版" → docs/illustrator/svg还原分层AI.md（结论先行动5 + 坑⑪⑫；convert-to-ai.jsx `CANVAS_CLIP`）
+- "转 AI 后灯光/发光变白、光晕不对、混合模式丢了 / 第二个文件报 271" → docs/illustrator/svg还原分层AI.md（结论先行动6/7 + 坑⑬⑭⑮⑯⑰）
 - "编辑模式点文字跳某块" → docs/figma/编辑模式文字链接导航.md
 - "编辑时快速定位视图" → docs/figma/编辑模式快速定位.md
 - "评论挤在一起 / 合并" → docs/figma/评论排布技巧.md
