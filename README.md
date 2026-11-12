@@ -28,22 +28,16 @@
 | 1 | [SVG 还原为带分层的 AI](docs/illustrator/svg还原分层AI.md) | 扁平 SVG + 同名 PDF → 可编辑带图层 .ai：pattern 失真修复 / 位图抽取 / 光效按类型处理 / 无头转换 + 画布收边 + 像素级验证 |
 | 2 | [无头脚本自动化速查](docs/illustrator/无头脚本自动化速查.md) | 一条命令让 Illustrator 跑 JSX 脚本、零弹窗零点击：同盘暂存规则 / 安全警告开关 / 三条启动通道 / 排错速查 |
 
-## 脚本 scripts/&lt;软件&gt;/
+## 脚本 scripts/<软件>/
 
 - `scripts/illustrator/`：分层 SVG 构建器（通用版 `build_layered.py` 自动识别 pattern/filter/mask/混合模式 +
   命令感知 path 解析 + 按区域分组；`build_layered_svg.py` 为首份稿的手写参考实现）+ 光效透明底渲染
   `render_glow.py` + AI 无头转换 JSX + 图层结构核验 JSX。逐脚本说明见
   [scripts/illustrator/README.md](scripts/illustrator/README.md)。
 
-## 维护规则（写新条目前必读）
+## 维护规则
 
-结构、命名与增长协议见 [DEVELOPMENT.md](DEVELOPMENT.md)「目录架构」一节，要点：
-
-- 新条目放 `docs/<软件>/`，从 [docs/_template.md](docs/_template.md) 复制头部；
-- **新增条目必须同步三处**：本 README 软件表 + [docs/index.md](docs/index.md) + AGENTS.md 的软件路由；
-- 单软件 docs ≤12 篇平铺，超出按主题域开二级目录；
-- frontmatter 是闭集（字段见 `schema/frontmatter.schema.json`），日期只用 `last_reviewed`；
-- 只收验证过的内容，未验证标「暂未验证」。
+写新条目或改动结构前，先读 [DEVELOPMENT.md](DEVELOPMENT.md)「目录架构」的同步规则与 [AGENTS.md](AGENTS.md) 的核心约束；规则只在那里维护，本页不重复。
 
 ## 校验
 

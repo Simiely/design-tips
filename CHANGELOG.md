@@ -2,6 +2,12 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.7.1] - 2026-11-12
+### 复核修正
+- 规则收敛到单一位置：`DEVELOPMENT.md`「目录架构」是同步规则唯一权威；README 改为指向，AGENTS 核心约束、`docs/index.md`、`docs/_template.md` 不再复述细则。
+- 明确坑位策略（总表，不建独立 `kind: pitfall` 页）；`docs/_generated/pitfalls.md` 无 pitfall 页时为空表，保留不删。
+- 恢复 README 小标题原文 `scripts/<软件>/`（去掉多余的 HTML 转义）。
+
 ## [0.7.0] - 2026-11-12
 ### 文档维护（接入 repo-kit knowledge profile）
 - 机器层：`tools/repo-kit/`（check/generate）、`schema/`（taxonomy、frontmatter 契约、sources、kit.lock）、

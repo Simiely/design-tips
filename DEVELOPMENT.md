@@ -33,6 +33,9 @@ design-tips/
 - 目录即命名空间：新条目放 `docs/<软件>/`，跨软件通用放 `docs/common/`（出现内容再建）。
 - 单软件 `docs/<软件>/` ≤12 篇平铺；超出后按主题域开二级目录（如 `docs/illustrator/自动化/`）并补该目录 `索引.md`。
 - 新增条目同步三处：`README.md` 软件表、`docs/index.md`、`AGENTS.md` 路由（`rules/` 里的 FAQ 同步）。
+- 坑位策略：用文档内「坑」段 + `rules/<软件>.md` 总表，**不建独立 `kind: pitfall` 页**；
+  因此 `docs/_generated/pitfalls.md` 当前为空表（生成器固定产出 5 件，保留即可）；
+  当某软件坑位 ≥10 条且需要单独检索时再拆页。
 - 知识流：单仓库的坑写在对应文档「坑」段或本文件；跨项目复用的，收尾时提炼到 knowledge-base 用户库。
 
 ## 关键问题与方案
@@ -87,6 +90,6 @@ design-tips/
 
 ## TODO
 
-- Figma：原型连线跳转 / 板内 Overlay / Scroll To 验证后补录，并同步三处索引。
+- Figma：原型连线跳转 / 板内 Overlay / Scroll To 验证后补录，并按同步规则更新索引。
 - Illustrator：导出预设 / 脚本面板 / 颜色管理等主题验证后补录。
 - 收尾时把跨项目通用的坑（无头脚本、SVG→AI 分层）提炼到 knowledge-base 用户库。

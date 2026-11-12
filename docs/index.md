@@ -37,4 +37,4 @@ related: []
 
 ## 边界
 
-不要在这里复制完整页面清单；新增条目后同步本页、README 软件表与 AGENTS 路由，`docs/_generated/` 由 `tools/repo-kit/generate.py` 重建。
+不要在这里复制完整页面清单；新增条目后按 [DEVELOPMENT](../DEVELOPMENT.md)「目录架构」的同步规则执行，`docs/_generated/` 由 `tools/repo-kit/generate.py` 重建。
