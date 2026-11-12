@@ -1,6 +1,6 @@
 # AGENTS.md · design-tips 项目规则
 
-> 📌 **文档基线**：2026-11-12（`be6ce80`）完成 knowledge 契约迁移
+> 📌 **文档基线**：2026-11-12（`4ead659`）完成 knowledge 契约迁移
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 本仓库整理**平面设计软件**实战技巧，按软件分区 `docs/<软件>/`，脚本在 `scripts/<软件>/`。
