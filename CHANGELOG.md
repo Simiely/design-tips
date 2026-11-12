@@ -2,6 +2,16 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.8.0] - 2026-11-12
+### 新增（首个跨软件通用条目）
+- `docs/common/动图WebP无缝循环.md` —— 把"填满即重置"的动图 WebP 改成**数学上无缝**的循环：
+  探针（RIFF/ANMF 读真实帧时长 + 亚像素拟合环径/描边 + 分层取色）→ SDF 重画
+  （整数圈 × 整数伸缩周期，后缘不倒退）→ 接缝验收（接缝 1.01× 普通帧步长）。含 6 条坑。
+- `scripts/common/loop_webp.py` —— 单文件三子命令 `probe` / `make` / `check`，依赖仅 Pillow + NumPy；
+  `scripts/common/README.md` 作薄索引，命令与判据只在文档页维护。
+- 结构：`docs/common/` 与 `scripts/common/` 首次落地（增长协议预留的跨软件分区）；
+  README 软件索引、`docs/index.md` 导航、`schema/agents.template.md` 路由同步更新。
+
 ## [0.7.1] - 2026-11-12
 ### 复核修正
 - 规则收敛到单一位置：`DEVELOPMENT.md`「目录架构」是同步规则唯一权威；README 改为指向，AGENTS 核心约束、`docs/index.md`、`docs/_template.md` 不再复述细则。

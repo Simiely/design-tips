@@ -10,7 +10,7 @@
 
 - Figma → `docs/figma/`（细则 `rules/figma.md`）
 - Illustrator → `docs/illustrator/` + `scripts/illustrator/`（细则 `rules/illustrator.md`）
-- 跨软件通用 → `docs/common/`（目前无内容，出现再建）
+- 跨软件通用 → `docs/common/` + `scripts/common/`
 
 ## 核心约束
 

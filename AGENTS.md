@@ -10,7 +10,7 @@
 
 - Figma → `docs/figma/`（细则 `rules/figma.md`）
 - Illustrator → `docs/illustrator/` + `scripts/illustrator/`（细则 `rules/illustrator.md`）
-- 跨软件通用 → `docs/common/`（目前无内容，出现再建）
+- 跨软件通用 → `docs/common/` + `scripts/common/`
 
 ## 核心约束
 
@@ -35,8 +35,8 @@ pwsh tools/update-repo-kit.ps1 -Check
 
 ## 当前规模
 
-- 页面：7（critical=0）
-- 按 type：how-to=5, reference=2
+- 页面：8（critical=0）
+- 按 type：how-to=6, reference=2
 - 词表版本：2.3.2
 
 ## 边界

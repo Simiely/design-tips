@@ -12,6 +12,12 @@
 
 ## 软件索引
 
+### 跨软件通用（1 篇）→ docs/common/
+
+| # | 主题 | 一句话 |
+|---|---|---|
+| 1 | [动图 WebP 无缝循环重制](docs/common/动图WebP无缝循环.md) | "填满即重置"的动图 → 数学上无缝的循环：探针反推环径/描边/配色，SDF 重画，接缝量化验收（1.01× 普通帧步长） |
+
 ### Figma（4 篇）→ docs/figma/
 
 | # | 主题 | 一句话 |
@@ -30,6 +36,9 @@
 
 ## 脚本 scripts/<软件>/
 
+- `scripts/common/`：跨软件通用 —— 动图 WebP 探针 / 无缝循环重制 / 接缝验收
+  `loop_webp.py`（单文件三子命令，依赖仅 Pillow + NumPy）。说明见
+  [scripts/common/README.md](scripts/common/README.md)。
 - `scripts/illustrator/`：分层 SVG 构建器（通用版 `build_layered.py` 自动识别 pattern/filter/mask/混合模式 +
   命令感知 path 解析 + 按区域分组；`build_layered_svg.py` 为首份稿的手写参考实现）+ 光效透明底渲染
   `render_glow.py` + AI 无头转换 JSX + 图层结构核验 JSX。逐脚本说明见

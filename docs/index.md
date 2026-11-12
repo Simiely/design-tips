@@ -23,6 +23,10 @@ related: []
 - [DEVELOPMENT](../DEVELOPMENT.md) — 目录架构与关键问题记录
 - [CHANGELOG](../CHANGELOG.md) — 版本历史
 
+## 跨软件通用
+
+- [动图 WebP 无缝循环重制](common/动图WebP无缝循环.md) — "填满即重置"的动图 → 无缝循环：探针、重画、接缝验收
+
 ## Figma
 
 - [编辑模式：文字链接导航](figma/编辑模式文字链接导航.md) — 普通编辑模式下点文字跳本文件画板/页面
