@@ -1,0 +1,24 @@
+# design-tips
+
+> 文档索引与机器可读入口：内容契约、类型化关系、证据与新鲜度。
+> 生成文件，勿手改。
+
+## Core
+
+- [README](./README.md)
+- [文档索引](./docs/index.md)
+
+## By type
+
+### how-to
+
+- [评论排布：避免评论簇/合并](./docs/figma/评论排布技巧.md) — Figma 会合并贴太近的评论；用错位摆放与拉开间距规避，无原生关闭开关。
+- [编辑模式：快速定位](./docs/figma/编辑模式快速定位.md) — Ctrl+/ 快速菜单、左栏图层、Section 目录与 Shift+2 四招在画布上快速跳转。
+- [编辑模式：文字链接导航（最推荐）](./docs/figma/编辑模式文字链接导航.md) — 不进原型，用「Add links to text」让导航文字在编辑模式下直接跳到本文件画板/页面。
+- [无头脚本自动化速查（零弹窗跑通）](./docs/illustrator/无头脚本自动化速查.md) — 一条命令让 Illustrator 跑 JSX 脚本、零弹窗零点击：同盘规则、启动通道对比与排错表。
+- [SVG 还原为带分层的 AI 文件](./docs/illustrator/svg还原分层AI.md) — 扁平 SVG + 同名 PDF → 可编辑带图层 .ai 的完整流水线：分组、光效分流、无头转换与像素验证。
+
+### reference
+
+- [导航速查（Figma 完整汇总）](./docs/figma/导航速查.md) — Figma 文档内导航/跳转的全部已验证做法汇总，含文字链接、快速定位与评论排布入口。
+- [文档索引](./docs/index.md) — design-tips 的人工导航；完整页面索引见 _generated/index.md。

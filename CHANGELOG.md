@@ -2,6 +2,17 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.7.0] - 2026-11-12
+### 文档维护（接入 repo-kit knowledge profile）
+- 机器层：`tools/repo-kit/`（check/generate）、`schema/`（taxonomy、frontmatter 契约、sources、kit.lock）、
+  `requirements.txt`、`.github/workflows/repo-check.yml`；验收命令与 CI 对齐 knowledge-base 单项目规范。
+- 页面契约：6 篇文档补标准 frontmatter（id/title/type/kind/status/owner/source/last_reviewed），
+  移除自定义「软件/关联/验证日期/状态」四字段，适用范围与验证环境下移到正文首行。
+- 结构：新增 `docs/index.md`（人工导航）、`docs/_template.md`（新条目模板）、`docs/_generated/`（生成索引/反链/踩坑索引）。
+- AGENTS：改为由 `schema/agents.template.md` 生成，正文细则拆到 `rules/figma.md`、`rules/illustrator.md`，并加文档基线行。
+- README / DEVELOPMENT：README 只做门面与索引（修正 Illustrator 篇数、frontmatter 字段描述）；
+  DEVELOPMENT 改为「概览 → 目录架构 → 关键问题与方案」三段，增长协议收敛到一处。
+
 ## [0.6.0] - 2026-11-11
 ### 新增
 - `scripts/illustrator/build_layered.py` —— **通用版分层 SVG 构建器**（首选）。相对 `build_layered_svg.py`

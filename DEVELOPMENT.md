@@ -1,49 +1,92 @@
-# DEVELOPMENT.md — 增长协议 + 踩坑与界面差异记录
+# DEVELOPMENT.md — 目录架构与关键问题记录
 
-记录结构规范与整理过程中遇到的问题，方便未来补充。**只收录已验证事项。**
+本仓库是平面设计软件的实战技巧库：只收录真实环境验证过的做法，按软件分区，文档与配套脚本同仓。
 
-## 增长协议（多软件分区结构，2026-10-30 起）
+## 项目概览
 
-> 本仓库已从「Figma 单软件」改造为「平面设计软件多软件库」。以下协议用于**防止后期加入更多数据后检索变乱**。
+- 目标读者：需要查"这个界面/脚本到底怎么做"的自己与 AI 助手
+- 解决什么问题：软件界面与旧教程差异大、踩过的坑容易忘；把验证结论固化成可检索的短页
+- 不做什么：不做通用设计教程、不收录未验证操作、不写第二份软件官方文档
 
-- **目录即命名空间**：新条目放 `docs/<软件>/`（如 `docs/figma/`、`docs/illustrator/`），
-  跨软件通用经验放 `docs/common/`。文件名不再重复加软件前缀。
-- **新增条目必须同步两处索引**（纪律，缺一不可）：
-  1. README「软件索引」表加一行（主题 + 一句话）；
-  2. AGENTS.md「FAQ 路由」加一行（问题关键词 → 文件路径）。
-- **增长阈值**：单软件 `docs/<软件>/` ≤12 篇时平铺；超过后按主题域开二级目录
-  （如 `docs/illustrator/自动化/`、`docs/illustrator/导入导出/`），并补该目录的 `索引.md`。
-- **frontmatter**：每篇头部加 `软件 / 关联 / 验证日期 / 状态` 四行元数据，
-  将来可脚本化自动生成索引。
-- **脚本**：`scripts/<软件>/`，工具型沉淀跟随对应文档；某软件主题 ≥3 个时才建 `skills/<软件>-<主题>/`。
-- **只收验证过的内容**：未在真实环境验证的不入库（沿用本仓库一创建就定下的原则）。
+## 目录架构
 
-## 背景（历史沿革）
+```text
+design-tips/
+├── README.md            # 门面：软件索引（人）
+├── AGENTS.md            # 生成：AI/维护者入口（路由 + 核心约束 + @rules）
+├── DEVELOPMENT.md       # 本文件：架构、增长协议、关键问题
+├── CHANGELOG.md         # 版本记录
+├── docs/
+│   ├── index.md         # 人工导航
+│   ├── _template.md     # 新条目模板（frontmatter + 场景/做法/坑）
+│   ├── _generated/      # 生成：索引、反链、踩坑索引，勿手改
+│   ├── figma/           # 按软件分区
+│   └── illustrator/
+├── rules/               # AI 细则：figma.md / illustrator.md（从 AGENTS 拆出）
+├── scripts/<软件>/      # 与文档配套的工具脚本
+├── schema/              # taxonomy / frontmatter 契约 / sources / kit.lock
+└── tools/repo-kit/      # 校验与生成器（由 update-repo-kit.ps1 安装）
+```
 
-- 2026-08：创建时定位「Figma 导航跳转技巧」。
-- 2026-08-25：扩展为「Figma 使用技巧速查」，新增评论排布主题。
-- 2026-10-30：改造为多软件库 `design-tips`（Figma / Illustrator / …），
-  docs 按软件分区；首个 Illustrator 主题「SVG 还原为带分层的 AI」入库，含流水线脚本。
-- 环境：Figma 桌面版客户端（UI3 风格）；Illustrator 2026（Windows，无头脚本驱动）。
-  界面语言/布局与旧教程存在差异，是反复踩坑的主因。
-- 原则：**没用过、没验证过的不入库。**
+**增长协议**
 
-## 已验证结论 — Figma
+- 目录即命名空间：新条目放 `docs/<软件>/`，跨软件通用放 `docs/common/`（出现内容再建）。
+- 单软件 `docs/<软件>/` ≤12 篇平铺；超出后按主题域开二级目录（如 `docs/illustrator/自动化/`）并补该目录 `索引.md`。
+- 新增条目同步三处：`README.md` 软件表、`docs/index.md`、`AGENTS.md` 路由（`rules/` 里的 FAQ 同步）。
+- 知识流：单仓库的坑写在对应文档「坑」段或本文件；跨项目复用的，收尾时提炼到 knowledge-base 用户库。
 
-- 编辑模式内做导航的**正解是文字链接（Add links to text）**，指向本文件画板/页面，点击即跳。
-- 评论过多自动叠成"簇"：**无原生关闭开关**，靠错位摆放 + 拉开间距分散（docs/figma/评论排布技巧.md）。
+## 关键问题与方案
 
-## 已知界面差异（容易误导，仅作提示，未完全定论）
+### 问题：Figma 编辑模式点文字不跳转（2026-08）
 
-1. **属性面板位置**：旧教程说"右侧属性面板 Create link"；当前界面**选中文字后会从下方浮现一排快捷按钮**（含 Create link，回形针图标）。入口可能在下方而非右侧。
-2. **`Ctrl+\`** 可显示/隐藏右侧栏；面板太窄页签会被挤没，拖宽即可。
+**TL;DR**：正确姿势是「Add links to text」，且必须先退出文字编辑态。
+
+- 问题：给导航文字加链接后点击无反应
+- 根因：仍在文字编辑态 / 链接没生效（无下划线）/ 按着 Ctrl
+- 解决：双击选中字 → `Create link` → 粘贴画板链接 → 回车，退出编辑态再点
+- 预防：认图标（回形针/链条）不认位置；详见 `docs/figma/编辑模式文字链接导航.md`
+
+### 问题：AI 无头脚本永不开始，卡在 "File not found"（2026-10-30）
+
+**TL;DR**：脚本必须与 Illustrator 同盘；跨盘触发模态阻塞。
+
+- 问题：`-r script.jsx` 启动后日志一直没有 `done`
+- 根因：跨盘路径触发模态 "File not found"，主线程被阻塞
+- 解决：启动前把脚本暂存到 `%SystemDrive%\ai\jobs\`，同盘后再启动
+- 预防：判据只看日志有无 `done`；该弹窗是噪音，不代表脚本失败
+
+### 问题：SVG 顶层命名组加 `clip-path` → AI 导入后组名为空（2026-11-02）
+
+**TL;DR**：收边不能写在 SVG 里，必须放到 JSX 用 `GroupItem.clipped`。
+
+- 问题：按组名配对的图层全部 `moved:0`，命名层被当空壳删光
+- 根因：AI 2026 导入带 `clip-path` 的顶层命名组后 `GroupItem.name` 丢失
+- 解决：SVG 侧只留 id，画布收边在 `convert-to-ai.jsx` 中用裁剪组实现
+- 预防：无头环境不用 `executeMenuCommand("Clipping Mask")`（必报 BKey 错）
+
+### 问题：光效在 AI 里变白/丢失（2026-11-11）
+
+**TL;DR**：模糊、投影、混合模式、实心遮罩要分别处理，不能统一替换成 PDF 位图。
+
+- 问题：发光变死白亮斑、图标本体消失、光晕被洗淡
+- 根因：`mix-blend-mode` 不在 SVG 导入范围内；投影位图只含阴影；PDF 的 blur 偏白
+- 解决：模糊用浏览器渲染透明底图、投影叠回矢量主体、混合模式按组名补设、实心 mask 转 clipPath
+- 预防：见 `docs/illustrator/svg还原分层AI.md` 结论先行 6/7 与坑⑬~⑰
+
+## 历史沿革
+
+- 2026-08：创建时定位「Figma 导航跳转技巧」；08-25 扩展为「Figma 使用技巧速查」。
+- 2026-10-30：改造为多软件库 `design-tips`，docs 按软件分区，首个 Illustrator 主题入库。
+- 2026-11-12：接入 repo-kit `knowledge` profile，统一页面契约与生成索引，AGENTS 拆出 `rules/`。
 
 ## 官方参考源
 
-- Add links to text：https://help.figma.com/hc/en-us/articles/360045942953
+- Figma Add links to text：https://help.figma.com/hc/en-us/articles/360045942953
+- Figma Move or edit comments：https://help.figma.com/hc/en-us/articles/360041547853
+- Adobe Install and run scripts：https://helpx.adobe.com/in/illustrator/desktop/automate-visualize-data/automate-actions/install-and-run-scripts.html
 
-## TODO（可选）
+## TODO
 
-- Figma：在真实环境把"原型连线跳转 / 板内 Overlay / Scroll To / 连线治理"验证后补录，并同步 README 表 + AGENTS 路由。
-- Figma：网页版 vs 桌面版按钮位置差异，截图对比后补进本文档。
-- Illustrator：新主题（导出预设 / 脚本面板 / 颜色管理…）验证后按增长协议补录。
+- Figma：原型连线跳转 / 板内 Overlay / Scroll To 验证后补录，并同步三处索引。
+- Illustrator：导出预设 / 脚本面板 / 颜色管理等主题验证后补录。
+- 收尾时把跨项目通用的坑（无头脚本、SVG→AI 分层）提炼到 knowledge-base 用户库。

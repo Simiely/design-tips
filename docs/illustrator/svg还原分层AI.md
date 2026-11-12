@@ -1,11 +1,20 @@
 ---
-软件: Illustrator 2026
-关联: Figma 导出的 SVG / PDF
-验证日期: 2026-10-30（全流程）/ 2026-11-02（画布收边，第 2 份真实设计稿回归）/ 2026-11-11（混合模式 + 光效栅格化，同稿两状态回归）
-状态: 已验证（3 份真实设计稿全流程跑通 + AI 导出像素级比对）
+id: docs.illustrator.svg-to-layered-ai
+title: SVG 还原为带分层的 AI 文件
+summary: 扁平 SVG + 同名 PDF → 可编辑带图层 .ai 的完整流水线：分组、光效分流、无头转换与像素验证。
+type: how-to
+kind: note
+status: active
+owner: "@simiely"
+topics: [illustrator, design]
+source_type: code
+source: scripts/illustrator/build_layered.py
+last_reviewed: 2026-11-11
+related: ["docs.illustrator.headless-scripting:see-also"]
 ---
-
 # SVG 还原为带分层的 AI 文件
+
+> 适用环境：Illustrator 2026（build 30，Windows）+ Figma 导出的 SVG / PDF；全流程已验证 3 份真实设计稿。
 
 ## 场景
 
