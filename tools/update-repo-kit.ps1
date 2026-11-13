@@ -9,8 +9,11 @@
         tools/repo-kit/generate.py        (all profiles except link-only)
         schema/frontmatter.schema.json
         schema/skills.schema.json         (skills profile, or if already present)
-    and writes schema/kit.lock.json with the kit version, profile and SHA256
-    of every distributed file.
+    and writes schema/kit.lock.json with the kit version, spec version, profile
+    and SHA256 of every distributed file.
+
+    The spec version is read from ../单项目规范/spec.json (sibling of the kit
+    source), so the standard has a single definition point.
 
     Repo-owned files (schema/taxonomy.json, schema/sources.json) are never
     overwritten.
@@ -78,10 +81,10 @@ if ($Check) {
     }
     if ($bad.Count -gt 0) {
         foreach ($b in $bad) { Write-Output $b }
-        Write-Output ('KIT LOCK: FAIL (v' + $lock.version + ', profile=' + $lock.profile + ')')
+        Write-Output ('KIT LOCK: FAIL (v' + $lock.version + ', spec=' + $lock.spec_version + ', profile=' + $lock.profile + ')')
         exit 1
     }
-    Write-Output ('KIT LOCK: PASS (v' + $lock.version + ', profile=' + $lock.profile + ')')
+    Write-Output ('KIT LOCK: PASS (v' + $lock.version + ', spec=' + $lock.spec_version + ', profile=' + $lock.profile + ')')
     exit 0
 }
 
@@ -104,6 +107,19 @@ if (-not (Test-Path -LiteralPath ([System.IO.Path]::Combine($Source, 'scripts', 
 }
 
 $version = (Read-Json ([System.IO.Path]::Combine($Source, 'schema', 'taxonomy.json'))).version
+# Spec source: sibling directory of the kit that contains spec.json.
+# Resolved by search to keep this script ASCII-only (Windows PowerShell 5.1
+# reads BOM-less .ps1 as ANSI and would corrupt non-ASCII path literals).
+$specCandidates = @(
+    Get-ChildItem -LiteralPath (Split-Path -Parent $Source) -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName 'spec.json' } |
+        Where-Object { Test-Path -LiteralPath $_ }
+)
+if ($specCandidates.Count -eq 0) {
+    Write-Output 'ERROR: spec source not found (sibling spec.json of kit)'
+    exit 2
+}
+$specVersion = (Read-Json $specCandidates[0]).version
 $toolDir = [System.IO.Path]::Combine($repo, 'tools', 'repo-kit')
 New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
 
@@ -136,11 +152,12 @@ if ((Test-Path -LiteralPath $skillsSrc) -and (($Profile -eq 'skills') -or ($Prof
 $files['tools/update-repo-kit.ps1'] = Get-Sha256 $PSCommandPath
 
 $lock = [ordered]@{
-    kit       = 'repo-kit'
-    version   = $version
-    profile   = $Profile
-    installed = (Get-Date -Format 'yyyy-MM-dd')
-    files     = $files
+    kit          = 'repo-kit'
+    version      = $version
+    spec_version = $specVersion
+    profile      = $Profile
+    installed    = (Get-Date -Format 'yyyy-MM-dd')
+    files        = $files
 }
 Write-Utf8NoBom $lockPath (($lock | ConvertTo-Json -Depth 5) + "`n")
-Write-Output ('KIT LOCK: WRITTEN (v' + $version + ', profile=' + $Profile + ')')
+Write-Output ('KIT LOCK: WRITTEN (v' + $version + ', spec=' + $specVersion + ', profile=' + $Profile + ')')

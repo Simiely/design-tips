@@ -47,6 +47,7 @@ LINK_SCHEMES = ("http://", "https://", "mailto:", "tel:", "javascript:", "data:"
 ADR_RE = re.compile(r"ADR-(\d{4})-[a-z0-9-]+\.md$")
 ID_RE = re.compile(r"^[a-z0-9]+(\.[a-z0-9-]+)+$")
 PITFALL_FIELDS = ("summary", "symptom", "cause", "detect", "avoid", "recover", "applies_to", "severity")
+SPEC_VERSION = "2.0.0"
 
 
 # ---------------------------------------------------------------------------
@@ -423,8 +424,54 @@ class Doc:
     page: bool = False
 
 
+def check_spec(root: Path, report: Report) -> None:
+    """校验仓库声明的规范版本（schema/kit.lock.json 的 spec_version）。
+
+    - 无 kit.lock：视为未接入机器层（v1），不报错
+    - 有 kit.lock 但缺字段：WARN，提示重跑安装器
+    - 格式非法 / 高于校验器支持：ERROR
+    - 主版本落后：ERROR（需要迁移）；次版本落后：WARN
+    """
+    lock_path = root / "schema" / "kit.lock.json"
+    if not lock_path.exists():
+        return
+    try:
+        lock = json.loads(lock_path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        report.add("SPEC_LOCK", "ERROR", "schema/kit.lock.json", f"无法解析：{exc}")
+        return
+    raw = str(lock.get("spec_version") or "").strip()
+    if not raw:
+        report.add(
+            "SPEC_MISSING", "WARN", "schema/kit.lock.json",
+            "缺少 spec_version；重跑 tools/update-repo-kit.ps1 可补齐",
+        )
+        return
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", raw)
+    if not match:
+        report.add("SPEC_FORMAT", "ERROR", "schema/kit.lock.json", f"spec_version 不是 SemVer：{raw!r}")
+        return
+    repo_ver = tuple(int(x) for x in match.groups())
+    cur_ver = tuple(int(x) for x in SPEC_VERSION.split("."))
+    if repo_ver > cur_ver:
+        report.add(
+            "SPEC_NEWER", "ERROR", "schema/kit.lock.json",
+            f"仓库规范 {raw} 高于校验器支持的 {SPEC_VERSION}，请升级 repo-kit",
+        )
+    elif repo_ver[0] < cur_ver[0]:
+        report.add(
+            "SPEC_OUTDATED", "ERROR", "schema/kit.lock.json",
+            f"仓库规范 {raw} 落后主版本 {SPEC_VERSION}，需要按迁移文档升级",
+        )
+    elif repo_ver[1] < cur_ver[1]:
+        report.add(
+            "SPEC_OUTDATED", "WARN", "schema/kit.lock.json",
+            f"仓库规范 {raw} 落后次版本 {SPEC_VERSION}",
+        )
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(description="repo-kit v2.2 不变量校验器")
+    ap = argparse.ArgumentParser(description="repo-kit v2.4 不变量校验器")
     ap.add_argument("--root", default=".", help="仓库根目录")
     ap.add_argument("--json", action="store_true", help="JSON 输出（等价于 --format json）")
     ap.add_argument("--format", choices=["text", "json", "sarif", "github"], default="text", help="输出格式")
@@ -936,6 +983,9 @@ def main() -> int:
     # changed-only 过滤
     if changed:
         report.items = [i for i in report.items if i["file"] in changed or i["file"] == "."]
+
+    # 规范版本（始终检查，不受 changed-only 影响）
+    check_spec(root, report)
 
     if args.write_baseline:
         version = 2 if args.baseline_format == "v2" else 1
