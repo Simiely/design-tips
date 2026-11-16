@@ -37,7 +37,7 @@ pwsh tools/update-repo-kit.ps1 -Check
 
 - 页面：8（critical=0）
 - 按 type：how-to=6, reference=2
-- 词表版本：2.3.2
+- 词表版本：2.5.3
 
 ## 边界
 

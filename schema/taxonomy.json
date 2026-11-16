@@ -1,7 +1,7 @@
 {
-  "version": "2.3.2",
+  "version": "2.5.3",
   "name": "design-tips",
-  "include": ["README.md", "AGENTS.md", "docs/**", "rules/**"],
+  "include": ["README.md", "AGENTS.md", "docs/**", "rules/**", "DEVELOPMENT.md", "CHANGELOG.md"],
   "context_files": ["AGENTS.md"],
   "exempt_basenames": ["README.md", "CHANGELOG.md"],
   "link_only_files": ["rules/**"],
@@ -49,7 +49,7 @@
     "normal": 365,
     "critical": 90
   },
-  "entry_files": ["README.md"],
+  "entry_files": ["README.md", "DEVELOPMENT.md"],
   "generated_files": [
     "AGENTS.md",
     "llms.txt",

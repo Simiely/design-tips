@@ -2,6 +2,14 @@
 
 所有值得记录的变化都列在这里。
 
+## 2026-11-16 · 文档维护：升级 repo-kit 2.5.3 / 规范 2.1.2
+
+本节不改条目内容，不产生版本号。
+
+- 重装 kit：`schema/kit.lock.json` 写入 `v2.5.3 / spec 2.1.2`
+- `schema/taxonomy.json`：`DEVELOPMENT.md` / `CHANGELOG.md` 纳入扫描（此前不在 `include`，等于从未被检查）
+- 验收：`REPO CHECK: PASS`（ERROR=0、WARN=0）、`GENERATE CHECK: PASS`
+
 ## [0.8.0] - 2026-11-12
 ### 新增（首个跨软件通用条目）
 - `docs/common/动图WebP无缝循环.md` —— 把"填满即重置"的动图 WebP 改成**数学上无缝**的循环：
