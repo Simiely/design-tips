@@ -1,12 +1,18 @@
 {
-  "version": "2.5.3",
+  "version": "2.7.0",
   "name": "design-tips",
   "include": ["README.md", "AGENTS.md", "docs/**", "rules/**", "DEVELOPMENT.md", "CHANGELOG.md"],
-  "context_files": ["AGENTS.md"],
-  "exempt_basenames": ["README.md", "CHANGELOG.md"],
-  "link_only_files": ["rules/**"],
-  "slugger": "github",
-  "summary_policy": "warn",
+  "frontmatter_exempt": {
+    "names": [
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "DEVELOPMENT.md",
+      "README.md"
+    ],
+    "paths": [
+      "rules/**"
+    ]
+  },
   "types": ["tutorial", "how-to", "reference", "explanation"],
   "kinds": ["standard", "decision", "index", "note", "glossary", "report", "pitfall"],
   "statuses": ["draft", "active", "resolved", "superseded", "archived"],
@@ -49,7 +55,6 @@
     "normal": 365,
     "critical": 90
   },
-  "entry_files": ["README.md", "DEVELOPMENT.md"],
   "generated_files": [
     "AGENTS.md",
     "llms.txt",
