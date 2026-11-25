@@ -1,6 +1,6 @@
 # AGENTS.md · design-tips 项目规则
 
-> 📌 **文档基线**：2026-11-16（`d630355`）升级 repo-kit 2.5.3 / 规范 2.1.2；四件套补齐扫描
+> 📌 **文档基线**：2026-11-17（`6661240`）kit 2.7.0 / 规范 2.1.3；taxonomy 迁移后重新生成
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 本仓库整理**平面设计软件**实战技巧，按软件分区 `docs/<软件>/`，脚本在 `scripts/<软件>/`。
@@ -10,6 +10,7 @@
 
 - Figma → `docs/figma/`（细则 `rules/figma.md`）
 - Illustrator → `docs/illustrator/` + `scripts/illustrator/`（细则 `rules/illustrator.md`）
+- After Effects → `docs/after-effects/`（细则 `rules/after-effects.md`）
 - 跨软件通用 → `docs/common/` + `scripts/common/`
 
 ## 核心约束
@@ -32,6 +33,7 @@ pwsh tools/update-repo-kit.ps1 -Check
 
 - @rules/figma.md
 - @rules/illustrator.md
+- @rules/after-effects.md
 
 ## 当前规模
 

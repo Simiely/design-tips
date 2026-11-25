@@ -21,8 +21,9 @@ design-tips/
 │   ├── _template.md     # 新条目模板（frontmatter + 场景/做法/坑）
 │   ├── _generated/      # 生成：索引、反链、踩坑索引，勿手改
 │   ├── figma/           # 按软件分区
-│   └── illustrator/
-├── rules/               # AI 细则：figma.md / illustrator.md（从 AGENTS 拆出）
+│   ├── illustrator/
+│   └── after-effects/
+├── rules/               # AI 细则：figma.md / illustrator.md / after-effects.md（从 AGENTS 拆出）
 ├── scripts/<软件>/      # 与文档配套的工具脚本
 ├── schema/              # taxonomy / frontmatter 契约 / sources / kit.lock
 └── tools/repo-kit/      # 校验与生成器（由 update-repo-kit.ps1 安装）
@@ -76,20 +77,33 @@ design-tips/
 - 解决：模糊用浏览器渲染透明底图、投影叠回矢量主体、混合模式按组名补设、实心 mask 转 clipPath
 - 预防：见 `docs/illustrator/svg还原分层AI.md` 结论先行 6/7 与坑⑬~⑰
 
+### 问题：AE 脚本批量导入 SVG 失败，UI 却能导入（2026-11-24）
+
+**TL;DR**：AE 2026 的 SVG 导入选项不等于脚本接口；脚本对 SVG 设置 `importAs = FOOTAGE/COMP` 会抛错，默认 `importFile` 返回 `null`。
+
+- 问题：想用 ExtendScript 把 20 帧 SVG 按合成导入 AE，全部失败
+- 根因：SVG 导入器在脚本接口下不支持 UI 的 footage/合成选项；`importAs` 赋值即抛错
+- 解决：改用浏览器隔离渲染透明 PNG，再按语义分层组装
+- 预防：先做导入探针再定路线；详见 `docs/after-effects/SVG导入AE分层.md` 坑①
+
 ## 历史沿革
 
 - 2026-08：创建时定位「Figma 导航跳转技巧」；08-25 扩展为「Figma 使用技巧速查」。
 - 2026-10-30：改造为多软件库 `design-tips`，docs 按软件分区，首个 Illustrator 主题入库。
 - 2026-11-12：接入 repo-kit `knowledge` profile，统一页面契约与生成索引，AGENTS 拆出 `rules/`。
+- 2026-11-24：新增 After Effects 分区与首个 AE 条目；CI 去掉 PR path 过滤，避免 required check 被跳过。
 
 ## 官方参考源
 
 - Figma Add links to text：https://help.figma.com/hc/en-us/articles/360045942953
 - Figma Move or edit comments：https://help.figma.com/hc/en-us/articles/360041547853
 - Adobe Install and run scripts：https://helpx.adobe.com/in/illustrator/desktop/automate-visualize-data/automate-actions/install-and-run-scripts.html
+- Adobe Import SVG files（After Effects）：https://helpx.adobe.com/after-effects/desktop/import-files/import-svg-files/import-svg-files.html
+- After Effects Scripting Guide：https://ae-scripting.docsforadobe.dev/
 
 ## TODO
 
 - Figma：原型连线跳转 / 板内 Overlay / Scroll To 验证后补录，并按同步规则更新索引。
 - Illustrator：导出预设 / 脚本面板 / 颜色管理等主题验证后补录。
+- After Effects：原生 SVG 合成导入（UI 路线）的批量还原度待验证；验证前页面标「暂未验证」。
 - 收尾时把跨项目通用的坑（无头脚本、SVG→AI 分层）提炼到 knowledge-base 用户库。

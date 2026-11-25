@@ -1,6 +1,6 @@
 # design-tips — 平面设计软件实战技巧库
 
-平面设计软件（Figma / Illustrator / …）实操技巧速查，**按软件分区**。
+平面设计软件（Figma / Illustrator / After Effects / …）实操技巧速查，**按软件分区**。
 内容经官方文档核实 + 实际验证，每篇含 **场景 → 做法 → 坑**。只收验证过的内容。
 
 ## 入口
@@ -33,6 +33,12 @@
 |---|---|---|
 | 1 | [SVG 还原为带分层的 AI](docs/illustrator/svg还原分层AI.md) | 扁平 SVG + 同名 PDF → 可编辑带图层 .ai：pattern 失真修复 / 位图抽取 / 光效按类型处理 / 无头转换 + 画布收边 + 像素级验证 |
 | 2 | [无头脚本自动化速查](docs/illustrator/无头脚本自动化速查.md) | 一条命令让 Illustrator 跑 JSX 脚本、零弹窗零点击：同盘暂存规则 / 安全警告开关 / 三条启动通道 / 排错速查 |
+
+### After Effects（1 篇）→ docs/after-effects/
+
+| # | 主题 | 一句话 |
+|---|---|---|
+| 1 | [Figma SVG 导入 AE 分层](docs/after-effects/SVG导入AE分层.md) | 20 帧 5120×1600 SVG → 语义分层、透明边裁切、居中锚点、文本层还原；像素 diff + 墨量比验收 |
 
 ## 脚本 scripts/<软件>/
 

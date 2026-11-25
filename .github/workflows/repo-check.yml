@@ -1,17 +1,8 @@
 name: repo-check
 
 on:
+  # 不用 paths 过滤：required check 被 path 过滤跳过后会保持 Pending，阻塞 PR。
   pull_request:
-    paths:
-      - 'docs/**'
-      - 'rules/**'
-      - 'schema/**'
-      - 'tools/**'
-      - 'README.md'
-      - 'AGENTS.md'
-      - 'DEVELOPMENT.md'
-      - 'CHANGELOG.md'
-      - 'llms.txt'
   push:
     branches: [main]
   workflow_dispatch:

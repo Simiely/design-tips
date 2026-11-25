@@ -2,6 +2,28 @@
 
 所有值得记录的变化都列在这里。
 
+## [0.9.0] - 2026-11-24
+### 新增（After Effects 分区）
+- `docs/after-effects/SVG导入AE分层.md` —— 20 帧 5120×1600 Figma SVG → 语义分层 → AE 合成：
+  浏览器隔离渲染透明 PNG、按 x 空隙拆簇、裁透明边、锚点居中、文本层还原；
+  像素 diff + 墨量比验收（01 帧 mean 0.4777/255、>8 像素 0.2857%，其余 19 帧 mean 0.068–0.680）。
+- `rules/after-effects.md` —— 判断入口（脚本 ≠ UI、`<text>` 计数、轨道遮罩、锚点顺序、hard-light 隔离残差）。
+- 结构：`schema/taxonomy.json` topics 增加 `after-effects`；README 软件索引、`docs/index.md`、
+  `schema/agents.template.md` 路由、`DEVELOPMENT.md` 目录树与关键问题同步。
+
+### 修复
+- CI：`.github/workflows/repo-check.yml` 移除 PR `paths` 过滤。path-filtered workflow 被跳过时
+  required check 会保持 Pending；原配置缺 `scripts/**`、`requirements.txt`，可能阻塞 PR。
+- 账实：AGENTS 基线更新到 `6661240`（kit 2.7.0 / 规范 2.1.3）；补记 2026-11-17 迁移。
+
+## 2026-11-17 · 文档维护：taxonomy 迁移 frontmatter_exempt（kit 2.7.0 / 规范 2.1.3）
+
+本节补记此前未入 CHANGELOG 的两次维护，不改条目内容。
+
+- `c7a20e9`：taxonomy 的四种豁免写法收敛为 `frontmatter_exempt{names,paths}`；kit 升到 2.7.0、规范 2.1.3。
+- `6661240`：迁移后重新生成 AGENTS/llms 的词表版本，修复 CI `GENERATE CHECK`。
+- 验收：2026-11-24 在当前仓复跑 `REPO CHECK: PASS`、`GENERATE CHECK: PASS`。
+
 ## 2026-11-16 · 文档维护：升级 repo-kit 2.5.3 / 规范 2.1.2
 
 本节不改条目内容，不产生版本号。

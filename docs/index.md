@@ -9,7 +9,7 @@ owner: "@simiely"
 topics: [design]
 source_type: doc
 source: README.md
-last_reviewed: 2026-11-12
+last_reviewed: 2026-11-24
 related: []
 ---
 # 文档索引
@@ -38,6 +38,10 @@ related: []
 
 - [SVG 还原为带分层的 AI](illustrator/svg还原分层AI.md) — 扁平 SVG + 同名 PDF → 可编辑分层 .ai
 - [无头脚本自动化速查](illustrator/无头脚本自动化速查.md) — 一条命令零弹窗跑 JSX
+
+## After Effects
+
+- [Figma SVG 导入 AE 分层](after-effects/SVG导入AE分层.md) — 浏览器隔离渲染透明 PNG → 语义拆层 → 裁边居中 → 文本层还原 → 像素/墨量验收
 
 ## 边界
 

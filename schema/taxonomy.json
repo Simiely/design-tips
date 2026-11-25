@@ -18,7 +18,7 @@
   "statuses": ["draft", "active", "resolved", "superseded", "archived"],
   "tiers": ["normal", "critical"],
   "confidences": ["low", "medium", "high"],
-  "topics": ["design", "figma", "illustrator", "automation"],
+  "topics": ["design", "figma", "illustrator", "after-effects", "automation"],
   "relations": {
     "depends-on": {
       "direction": "directed",
